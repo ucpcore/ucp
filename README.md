@@ -147,6 +147,33 @@ token count is similar, but the package is still structured, hashed and
 audience-aware instead of being a wall of text. Generated with `ucp-gen`
 0.1.1, 2026-07-05.
 
+## What `--llm` adds
+
+The default pipeline is purely structural: fast, deterministic, no model
+involved. The optional `--llm` flag adds a semantic layer through a single
+call to any OpenAI-compatible endpoint — `summary` becomes a synthesis of
+the whole thread instead of its opening paragraph, comments the model flags
+as pivotal get a salience boost, and decisions and conflicts that exist
+only in prose are extracted into their structured fields.
+
+Measured on `microsoft/vscode#519` — 596 comments over a decade, of which
+200 fit the package (17 sources, ~1,623 rendered tokens) — the enriched
+package captures what no structural field of GitHub carries. The summary
+explains *why* the feature was never built: the VS Code team declined
+because list and tree heights are hard-coded, the community relies on
+workarounds (zoom, custom CSS), and a community PR was not accepted. A
+`conflict` records the dispute over whether Electron or VS Code's
+hard-coded styles are to blame, both positions citing specific hashed
+comments. A `decision` with status `rejected` records that the request is
+not on the roadmap — information stated only in prose, invisible to the
+structural mode.
+
+The guarantees do not change. The package still validates against the
+schema; every LLM-added claim must cite source ids that exist in the
+package (hallucinated citations are dropped); `generator.llm_model` records
+which model produced the enrichment; and if the endpoint is unreachable the
+generator degrades gracefully to the structural package with a warning.
+
 ## Industry-neutral by design
 
 The structure of "understanding a task" is the same everywhere; only the

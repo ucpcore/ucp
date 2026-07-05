@@ -52,9 +52,9 @@ call to any OpenAI-compatible endpoint (OpenAI, kie.ai, OpenRouter, a
 LiteLLM proxy, local Ollama):
 
 ```bash
-export UCP_LLM_BASE_URL=https://api.kie.ai/v1   # any OpenAI-compatible URL
+export UCP_LLM_BASE_URL=https://your-provider.example/v1   # any OpenAI-compatible URL
 export UCP_LLM_API_KEY=...
-export UCP_LLM_MODEL=gpt-4o-mini
+export UCP_LLM_MODEL=your-model
 
 ucp-gen github owner/repo#42 --llm -o task.ucp.json
 ```
@@ -64,8 +64,17 @@ What it changes: `summary` becomes a real synthesis of the whole thread
 salience boost, and decisions/conflicts stated in prose are extracted.
 Provenance survives: the model may only cite the source keys it was given —
 hallucinated citations are dropped, and every added claim still points at a
-real, hashed source. If the call fails, you get the structure-only package
-and a warning, never a broken one.
+real, hashed source. The model used is recorded in `generator.llm_model`.
+If the call fails, you get the structure-only package and a warning, never
+a broken one.
+
+A real run on `microsoft/vscode#519` (596 comments over ten years; 200 in
+the package, 17 sources, ~1,623 rendered tokens) shows the difference: the
+enriched summary explains why the feature was never built, a `conflict`
+captures the "Electron is at fault" vs "VS Code's hard-coded styles are at
+fault" dispute with both positions citing hashed comments, and a `decision`
+with status `rejected` records that the request is off the roadmap — none
+of which exists in any structured GitHub field.
 
 ## What the mapping does
 
