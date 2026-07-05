@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UCP — Universal Context Package</title>
+  <meta name="description" content="An open specification for packaging work context for LLMs. Structured, provenance-backed, time-aware, permission-aware.">
+  <style>
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+      --card: #161b22; --border: #30363d; --code: #1f2733;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      background: var(--bg); color: var(--fg);
+      font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex; justify-content: center; padding: 48px 20px 80px;
+    }
+    main { max-width: 720px; width: 100%; }
+    h1 { font-size: 2.4rem; line-height: 1.15; letter-spacing: -0.02em; }
+    .tagline { color: var(--muted); font-size: 1.2rem; margin: 12px 0 6px; }
+    .motto { color: var(--fg); font-size: 1.05rem; margin-bottom: 28px; font-style: italic; }
+    .badges { margin-bottom: 32px; }
+    .badges span {
+      display: inline-block; border: 1px solid var(--border); border-radius: 20px;
+      padding: 3px 12px; margin: 0 6px 6px 0; font-size: 0.82rem; color: var(--muted);
+    }
+    .cta { margin: 0 0 40px; }
+    .cta a {
+      display: inline-block; text-decoration: none; font-weight: 600;
+      padding: 10px 18px; border-radius: 8px; margin: 0 10px 10px 0;
+    }
+    .cta .primary { background: #238636; color: #fff; }
+    .cta .secondary { border: 1px solid var(--border); color: var(--accent); }
+    h2 { font-size: 1.15rem; margin: 36px 0 12px; }
+    p { color: var(--muted); margin-bottom: 12px; }
+    p strong { color: var(--fg); }
+    pre {
+      background: var(--code); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5;
+    }
+    code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .card h3 { font-size: 0.95rem; margin-bottom: 6px; }
+    .card p { font-size: 0.88rem; margin: 0; }
+    footer { margin-top: 56px; color: var(--muted); font-size: 0.85rem; }
+    footer a { color: var(--muted); }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Universal Context Package</h1>
+  <p class="tagline">An open specification for packaging work context for LLMs.</p>
+  <p class="motto">Never read 50 documents to understand one task again.</p>
+
+  <div class="badges">
+    <span>v0.1.0-draft</span><span>Apache 2.0</span><span>JSON Schema 2020-12</span>
+  </div>
+
+  <p class="cta">
+    <a class="primary" href="https://github.com/ucpcore/ucp">Read the spec on GitHub</a>
+    <a class="secondary" href="https://github.com/ucpcore/ucp/blob/main/SPEC.md">SPEC.md</a>
+  </p>
+
+  <h2>The problem</h2>
+  <p>LLMs don't know your work context. Retrieval finds <em>similar text</em>;
+  it doesn't answer what is true <strong>now</strong>, what <strong>changed</strong>,
+  <strong>why</strong> decisions were made, or whether you are even
+  <strong>allowed</strong> to see it. UCP is the missing artifact: a verifiable,
+  time-aware, permission-aware package of what a person or agent needs to know
+  right now to act on a task.</p>
+  <p><strong>MCP is the pipe. UCP is what flows through it.</strong></p>
+
+  <h2>Design principles</h2>
+  <div class="grid">
+    <div class="card"><h3>Provenance is mandatory</h3>
+      <p>A claim without sources is schema-invalid. Sources carry content hashes.</p></div>
+    <div class="card"><h3>Time is first-class</h3>
+      <p>Claims have validity windows. Contradictions are represented, not merged.</p></div>
+    <div class="card"><h3>Permission-aware</h3>
+      <p>Packages declare their audience and attest that access control was enforced.</p></div>
+    <div class="card"><h3>Token-budgeted</h3>
+      <p>Salience defines deterministic truncation. The core survives any budget.</p></div>
+  </div>
+
+  <h2>Get started</h2>
+  <pre><code># Python
+pip install pyucp        # import ucp
+
+# TypeScript
+npm install @ucp/core
+
+# MCP server for Cursor / Claude Code
+pip install ucp-mcp</code></pre>
+
+  <pre><code>import ucp
+
+pkg = ucp.load("task.ucp.json")     # validate + parse
+prompt = ucp.render(pkg, token_budget=1500)</code></pre>
+
+  <footer>
+    Apache 2.0 · <a href="https://github.com/ucpcore/ucp">github.com/ucpcore/ucp</a>
+    · Stewarded by the Context OS team
+  </footer>
+</main>
+</body>
+</html>
