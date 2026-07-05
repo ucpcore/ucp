@@ -1,127 +1,585 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>UCP — Universal Context Package</title>
-  <meta name="description" content="An open specification for packaging work context for LLMs. Structured, provenance-backed, time-aware, permission-aware.">
-  <style>
-    :root {
-      --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
-      --card: #161b22; --border: #30363d; --code: #1f2733;
-    }
-    * { box-sizing: border-box; margin: 0; }
-    body {
-      background: var(--bg); color: var(--fg);
-      font: 16px/1.6 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      display: flex; justify-content: center; padding: 48px 20px 80px;
-    }
-    main { max-width: 720px; width: 100%; }
-    h1 { font-size: 2.4rem; line-height: 1.15; letter-spacing: -0.02em; }
-    .tagline { color: var(--muted); font-size: 1.2rem; margin: 12px 0 6px; }
-    .motto { color: var(--fg); font-size: 1.05rem; margin-bottom: 28px; font-style: italic; }
-    .badges { margin-bottom: 32px; }
-    .badges span {
-      display: inline-block; border: 1px solid var(--border); border-radius: 20px;
-      padding: 3px 12px; margin: 0 6px 6px 0; font-size: 0.82rem; color: var(--muted);
-    }
-    .cta { margin: 0 0 40px; }
-    .cta a {
-      display: inline-block; text-decoration: none; font-weight: 600;
-      padding: 10px 18px; border-radius: 8px; margin: 0 10px 10px 0;
-    }
-    .cta .primary { background: #238636; color: #fff; }
-    .cta .secondary { border: 1px solid var(--border); color: var(--accent); }
-    h2 { font-size: 1.15rem; margin: 36px 0 12px; }
-    p { color: var(--muted); margin-bottom: 12px; }
-    p strong { color: var(--fg); }
-    pre {
-      background: var(--code); border: 1px solid var(--border); border-radius: 8px;
-      padding: 14px 16px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5;
-    }
-    code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
-    .card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 16px 18px;
-    }
-    .card h3 { font-size: 0.95rem; margin-bottom: 6px; }
-    .card p { font-size: 0.88rem; margin: 0; }
-    footer { margin-top: 56px; color: var(--muted); font-size: 0.85rem; }
-    footer a { color: var(--muted); }
-    a { color: var(--accent); }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UCP · Universal Context Package</title>
+<meta name="description" content="An open format that turns a sprawling issue thread into a small, verifiable context package for LLM agents. One command to generate, MCP to serve.">
+<meta property="og:title" content="UCP · Universal Context Package">
+<meta property="og:description" content="Work context, packaged for LLMs. A 596-comment thread becomes a 1,200-token package with decisions, conflicts and hashed sources.">
+<meta property="og:url" content="https://ucpcore.org">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ucpcore.org">
+<meta name="twitter:card" content="summary">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='SF Mono,Menlo,monospace' font-size='15' font-weight='700' fill='%234cc38a' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<script>document.documentElement.classList.add("js");</script>
+<style>
+:root {
+  --bg: #0b0e12;
+  --surface: #10141a;
+  --surface-2: #141922;
+  --border: #222a34;
+  --fg: #e7ecf1;
+  --muted: #94a1ad;
+  --faint: #5c6873;
+  --accent: #4cc38a;
+  --accent-ink: #07130d;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+code, pre, .mono { font-family: var(--mono); }
+.wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px; }
+
+/* ---------- header ---------- */
+header {
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(11,14,18,.86);
+  backdrop-filter: blur(8px);
+}
+.nav {
+  display: flex; align-items: center; gap: 28px;
+  height: 60px;
+}
+.brand {
+  display: flex; align-items: baseline; gap: 10px;
+  color: var(--fg); font-weight: 600; letter-spacing: -0.01em;
+}
+.brand:hover { text-decoration: none; }
+.brand .mark { font-family: var(--mono); color: var(--accent); font-weight: 700; }
+.nav-links { display: flex; gap: 22px; margin-left: auto; font-size: .92rem; }
+.nav-links a { color: var(--muted); }
+.nav-links a:hover { color: var(--fg); text-decoration: none; }
+
+/* ---------- hero ---------- */
+.hero { padding: 72px 0 64px; }
+.hero-grid {
+  display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: 56px; align-items: center;
+}
+h1 {
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  line-height: 1.08; letter-spacing: -0.03em; font-weight: 700;
+  text-wrap: balance;
+}
+.hero .sub {
+  color: var(--muted); font-size: 1.12rem; line-height: 1.55;
+  margin: 18px 0 30px; max-width: 34em; text-wrap: pretty;
+}
+.hero .sub code { color: var(--fg); font-size: .95em; }
+.cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: .95rem; font-weight: 600;
+  padding: 10px 18px; border-radius: var(--radius);
+  border: 1px solid transparent; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, transform .1s ease;
+}
+.btn:active { transform: scale(.98); }
+.btn:hover { text-decoration: none; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); }
+.btn-primary:hover { background: #5cd49a; }
+.btn-secondary { border-color: var(--border); color: var(--fg); }
+.btn-secondary:hover { border-color: var(--faint); background: var(--surface); }
+
+/* before / after bars */
+.compare {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); padding: 26px 26px 22px;
+}
+.compare .case {
+  font-family: var(--mono); font-size: .8rem; color: var(--faint);
+  margin-bottom: 22px;
+}
+.compare .row { margin-bottom: 20px; }
+.compare .row:last-of-type { margin-bottom: 14px; }
+.compare .label {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: .85rem; margin-bottom: 8px;
+}
+.compare .label .name { color: var(--muted); }
+.compare .label .val { font-family: var(--mono); color: var(--fg); }
+.bar-track { height: 14px; border-radius: 4px; }
+.bar {
+  height: 100%; border-radius: 4px;
+  transform-origin: left center;
+  transition: transform 1s cubic-bezier(.16,1,.3,1);
+}
+.js .bar { transform: scaleX(0); }
+.js .in .bar { transform: scaleX(1); }
+.bar.raw {
+  width: 100%;
+  background: repeating-linear-gradient(
+    -45deg, #333d49 0 6px, #2a323d 6px 12px);
+  transition-delay: .1s;
+}
+.bar.ucp { width: 6.5%; min-width: 14px; background: var(--accent); transition-delay: .45s; }
+.compare .note {
+  font-size: .85rem; color: var(--muted);
+  border-top: 1px solid var(--border); padding-top: 14px;
+}
+.compare .note strong { color: var(--fg); font-family: var(--mono); font-weight: 600; }
+
+/* ---------- sections ---------- */
+section { padding: 72px 0; border-top: 1px solid var(--border); }
+h2 {
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
+  letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 10px;
+}
+.section-sub { color: var(--muted); max-width: 62ch; margin-bottom: 34px; text-wrap: pretty; }
+.section-sub code { color: var(--fg); font-size: .93em; }
+
+/* reveal on scroll */
+.js .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); }
+.js .reveal.in { opacity: 1; transform: none; }
+
+/* ---------- install tabs ---------- */
+.tabs { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.tablist { display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.tab {
+  appearance: none; background: none; border: none; cursor: pointer;
+  font: 600 .9rem/1 var(--mono); color: var(--muted);
+  padding: 14px 20px; border-bottom: 2px solid transparent;
+  margin-bottom: -1px; white-space: nowrap;
+  transition: color .15s ease;
+}
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.panel { padding: 22px 24px; }
+.panel[hidden] { display: none; }
+.panel .hint { font-size: .88rem; color: var(--muted); margin-bottom: 14px; }
+.cmd {
+  position: relative;
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 52px 14px 16px;
+  font-size: .87rem; line-height: 1.65; overflow-x: auto;
+}
+.cmd code { display: block; white-space: pre; font-family: var(--mono); }
+.cmd + .cmd { margin-top: 10px; }
+.cmd .c { color: var(--faint); }
+.cmd .p { color: var(--faint); user-select: none; }
+.copy {
+  position: absolute; top: 8px; right: 8px;
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--muted); border-radius: 6px; cursor: pointer;
+  padding: 5px 8px; font: 500 .72rem/1 var(--mono);
+  transition: color .15s ease, border-color .15s ease;
+}
+.copy:hover { color: var(--fg); border-color: var(--faint); }
+.copy.done { color: var(--accent); border-color: var(--accent); }
+.copy svg { width: 13px; height: 13px; }
+
+/* ---------- terminal ---------- */
+.term {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: #0d1117; overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,.35);
+}
+.term-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px; border-bottom: 1px solid var(--border);
+  font: 500 .75rem/1 var(--mono); color: var(--faint);
+}
+.term-body {
+  padding: 18px 20px 20px; font-family: var(--mono);
+  font-size: .86rem; line-height: 1.75; overflow-x: auto; white-space: pre;
+}
+.term-body .ln { display: block; }
+.term-body .ok { color: var(--accent); }
+.term-body .dim { color: var(--faint); }
+.term-body .hl { color: var(--fg); }
+.term-body .num { color: #9ecbff; }
+@media (prefers-reduced-motion: no-preference) {
+  .term.armed .ln { opacity: 0; animation: lineIn .3s ease forwards; }
+  .term.armed .ln:nth-child(1)  { animation-delay: .1s; }
+  .term.armed .ln:nth-child(2)  { animation-delay: .8s; }
+  .term.armed .ln:nth-child(3)  { animation-delay: 1.25s; }
+  .term.armed .ln:nth-child(4)  { animation-delay: 1.6s; }
+  .term.armed .ln:nth-child(5)  { animation-delay: 1.85s; }
+  .term.armed .ln:nth-child(6)  { animation-delay: 2.0s; }
+  .term.armed .ln:nth-child(7)  { animation-delay: 2.12s; }
+  .term.armed .ln:nth-child(8)  { animation-delay: 2.24s; }
+  .term.armed .ln:nth-child(9)  { animation-delay: 2.36s; }
+  .term.armed .ln:nth-child(10) { animation-delay: 2.48s; }
+}
+@keyframes lineIn { from { opacity: 0; } to { opacity: 1; } }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.col-note { font-size: .88rem; color: var(--muted); margin-top: 12px; max-width: 46ch; }
+
+/* ---------- connect steps ---------- */
+.steps { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.step {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); padding: 22px 24px;
+}
+.step h3 { font-size: 1rem; margin-bottom: 4px; letter-spacing: -0.01em; }
+.step .what { font-size: .88rem; color: var(--muted); margin-bottom: 16px; }
+.after-steps { margin-top: 22px; color: var(--muted); font-size: .95rem; max-width: 66ch; }
+.after-steps code { color: var(--fg); font-size: .92em; }
+
+/* ---------- benchmark ---------- */
+table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+th, td { text-align: left; padding: 11px 16px; }
+thead th {
+  font: 600 .75rem/1 var(--mono); text-transform: uppercase; letter-spacing: .06em;
+  color: var(--faint); border-bottom: 1px solid var(--border);
+}
+tbody td { border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: none; }
+td.n, th.n { text-align: right; font-family: var(--mono); }
+td .issue { font-family: var(--mono); font-size: .86rem; color: var(--fg); }
+td.win { color: var(--accent); font-weight: 600; }
+.bench-box { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); overflow-x: auto; }
+.bench-note { font-size: .85rem; color: var(--muted); margin-top: 14px; max-width: 70ch; }
+
+.llm-block {
+  margin-top: 48px;
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px;
+}
+.llm-block h3 { font-size: 1.15rem; letter-spacing: -0.01em; margin-bottom: 8px; }
+.llm-block .lead { color: var(--muted); font-size: .95rem; text-wrap: pretty; }
+.llm-block .lead code { color: var(--fg); font-size: .92em; }
+.finding {
+  border-left: 2px solid var(--accent);
+  padding: 2px 0 2px 18px; margin-bottom: 20px;
+}
+.finding:last-child { margin-bottom: 0; }
+.finding .kind {
+  font: 600 .75rem/1 var(--mono); color: var(--accent);
+  display: inline-block; margin-bottom: 6px;
+}
+.finding .kind .status { color: var(--muted); }
+.finding p { font-size: .93rem; color: var(--muted); }
+.finding p strong { color: var(--fg); font-weight: 600; }
+
+/* ---------- package fields ---------- */
+.schema {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); padding: 24px 26px;
+  font-family: var(--mono); font-size: .88rem; line-height: 2.05;
+  overflow-x: auto; white-space: pre;
+}
+.schema .k { color: var(--accent); }
+.schema .b { color: var(--faint); }
+.schema .cm { color: var(--muted); font-size: .95em; }
+.schema-note { font-size: .9rem; color: var(--muted); margin-top: 16px; max-width: 66ch; }
+.schema-note code { color: var(--fg); font-size: .92em; }
+
+/* ---------- footer ---------- */
+footer { border-top: 1px solid var(--border); padding: 40px 0 56px; }
+.foot {
+  display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: baseline;
+  font-size: .88rem; color: var(--muted);
+}
+.foot a { color: var(--muted); }
+.foot a:hover { color: var(--fg); }
+.foot .lic { margin-left: auto; font-family: var(--mono); font-size: .8rem; color: var(--faint); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 880px) {
+  .hero-grid, .two-col, .steps, .llm-block { grid-template-columns: 1fr; }
+  .hero { padding: 48px 0 56px; }
+  section { padding: 56px 0; }
+  .nav-links { gap: 16px; }
+  .foot .lic { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal, .bar { opacity: 1 !important; transform: none !important; transition: none !important; }
+}
+</style>
 </head>
 <body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="#"><span class="mark">{ }</span> UCP</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="#install">Install</a>
+      <a href="#measured">Benchmark</a>
+      <a href="https://github.com/ucpcore/ucp/blob/main/SPEC.md">Spec</a>
+      <a href="https://github.com/ucpcore/ucp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
 <main>
-  <h1>Universal Context Package</h1>
-  <p class="tagline">An open specification for packaging work context for LLMs.</p>
-  <p class="motto">Never read 50 documents to understand one task again.</p>
-
-  <div class="badges">
-    <span>v0.1.0-draft</span><span>Apache 2.0</span><span>JSON Schema 2020-12</span>
+  <div class="wrap hero">
+    <div class="hero-grid">
+      <div>
+        <h1>Work context, packaged for LLMs</h1>
+        <p class="sub">UCP is an open format that turns a sprawling issue thread
+        into a small, verifiable package your agent can load: facts, decisions,
+        conflicts, hashed sources.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#install">Run the server</a>
+          <a class="btn btn-secondary" href="https://github.com/ucpcore/ucp/blob/main/SPEC.md">Read the spec</a>
+        </div>
+      </div>
+      <div class="compare reveal" aria-label="Token comparison: raw thread versus UCP package">
+        <div class="case">microsoft/vscode#519 &middot; 596 comments over ten years</div>
+        <div class="row">
+          <div class="label"><span class="name">raw thread</span><span class="val">~18,500 tokens</span></div>
+          <div class="bar-track"><div class="bar raw"></div></div>
+        </div>
+        <div class="row">
+          <div class="label"><span class="name">ucp package</span><span class="val">~1,200 tokens</span></div>
+          <div class="bar-track"><div class="bar ucp"></div></div>
+        </div>
+        <p class="note"><strong>15&times; smaller</strong>, with decisions, conflicts and provenance intact.</p>
+      </div>
+    </div>
   </div>
 
-  <p class="cta">
-    <a class="primary" href="https://github.com/ucpcore/ucp">Read the spec on GitHub</a>
-    <a class="secondary" href="https://github.com/ucpcore/ucp/blob/main/SPEC.md">SPEC.md</a>
-  </p>
+  <section id="install">
+    <div class="wrap reveal">
+      <h2>Install</h2>
+      <p class="section-sub">Run the whole toolchain as one self-hosted service,
+      or pick the piece you need.</p>
+      <div class="tabs">
+        <div class="tablist" role="tablist" aria-label="Install methods">
+          <button class="tab" role="tab" id="tab-docker" aria-controls="panel-docker" aria-selected="true">Docker</button>
+          <button class="tab" role="tab" id="tab-uvx" aria-controls="panel-uvx" aria-selected="false" tabindex="-1">uvx</button>
+          <button class="tab" role="tab" id="tab-pip" aria-controls="panel-pip" aria-selected="false" tabindex="-1">pip</button>
+          <button class="tab" role="tab" id="tab-npm" aria-controls="panel-npm" aria-selected="false" tabindex="-1">npm</button>
+        </div>
+        <div class="panel" id="panel-docker" role="tabpanel" aria-labelledby="tab-docker">
+          <p class="hint">One container: REST API on <code>/v1</code>, MCP over Streamable HTTP on <code>/mcp</code>.</p>
+          <div class="cmd"><code>docker run --rm -p 8080:8080 -e GITHUB_TOKEN=ghp_yourtoken \
+  ghcr.io/ucpcore/ucp-server:latest</code><button class="copy" data-copy="docker run --rm -p 8080:8080 -e GITHUB_TOKEN=ghp_yourtoken ghcr.io/ucpcore/ucp-server:latest" aria-label="Copy Docker command"></button></div>
+        </div>
+        <div class="panel" id="panel-uvx" role="tabpanel" aria-labelledby="tab-uvx" hidden>
+          <p class="hint">Same server, no Docker. The PyPI package is <code>ucpcore-server</code>; the command is <code>ucp-server</code>.</p>
+          <div class="cmd"><code>uvx --from ucpcore-server ucp-server</code><button class="copy" data-copy="uvx --from ucpcore-server ucp-server" aria-label="Copy uvx command"></button></div>
+        </div>
+        <div class="panel" id="panel-pip" role="tabpanel" aria-labelledby="tab-pip" hidden>
+          <p class="hint">The CLI generator, the stdio MCP server, and the Python library.</p>
+          <div class="cmd"><code>pip install ucp-gen   <span class="c"># ucp-gen github owner/repo#42, ucp-gen jira KEY-1</span></code><button class="copy" data-copy="pip install ucp-gen" aria-label="Copy pip install ucp-gen"></button></div>
+          <div class="cmd"><code>pip install ucp-mcp   <span class="c"># serve packages to agents over stdio</span></code><button class="copy" data-copy="pip install ucp-mcp" aria-label="Copy pip install ucp-mcp"></button></div>
+          <div class="cmd"><code>pip install pyucp     <span class="c"># import ucp: models, validation, rendering</span></code><button class="copy" data-copy="pip install pyucp" aria-label="Copy pip install pyucp"></button></div>
+        </div>
+        <div class="panel" id="panel-npm" role="tabpanel" aria-labelledby="tab-npm" hidden>
+          <p class="hint">Types, validation and canonical rendering for TypeScript.</p>
+          <div class="cmd"><code>npm install @ucpcore/core</code><button class="copy" data-copy="npm install @ucpcore/core" aria-label="Copy npm install command"></button></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>The problem</h2>
-  <p>LLMs don't know your work context. Retrieval finds <em>similar text</em>;
-  it doesn't answer what is true <strong>now</strong>, what <strong>changed</strong>,
-  <strong>why</strong> decisions were made, or whether you are even
-  <strong>allowed</strong> to see it. UCP is the missing artifact: a verifiable,
-  time-aware, permission-aware package of what a person or agent needs to know
-  right now to act on a task.</p>
-  <p><strong>MCP is the pipe. UCP is what flows through it.</strong></p>
+  <section id="cli">
+    <div class="wrap reveal">
+      <div class="two-col">
+        <div>
+          <h2>Generate a package from a real issue</h2>
+          <p class="section-sub" style="margin-bottom:0">By default no LLM is involved:
+          the structure alone carries the facts, decisions and timeline.
+          Decorations go to stderr; stdout stays pure JSON, so piping is always safe.</p>
+          <p class="col-note">Works on any public GitHub issue or Jira ticket.
+          Every claim cites its sources; every source carries a <code style="color:var(--fg)">sha256</code> hash.
+          The output validates against the schema before it is written.</p>
+        </div>
+        <div class="term" role="img" aria-label="ucp-gen CLI session: generating a package from pallets/flask issue 5961">
+          <div class="term-head"><span>ucp-gen</span><span>zsh</span></div>
+          <div class="term-body"><span class="ln"><span class="dim">$</span> <span class="hl">ucp-gen github pallets/flask#5961 -o task.ucp.json</span></span><span class="ln"><span class="ok">✓</span> pallets/flask#5961 — issue + 4 comments + 1 linked PRs</span><span class="ln"><span class="ok">✓</span> valid ucp-core package — 6 sources, sha256-hashed</span><span class="ln">📦 wrote task.ucp.json</span><span class="ln"><span class="dim">├──</span> Flask 3.1.3 test breaks after Werkzeug update…</span><span class="ln"><span class="dim">├──</span> claims      <span class="num">7</span> must-know</span><span class="ln"><span class="dim">├──</span> decisions   <span class="num">1</span> (1 accepted)</span><span class="ln"><span class="dim">├──</span> sources     <span class="num">6</span></span><span class="ln"><span class="dim">└──</span> tokens      <span class="num">~713</span> rendered</span><span class="ln"><span class="dim">$</span></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <h2>Design principles</h2>
-  <div class="grid">
-    <div class="card"><h3>Provenance is mandatory</h3>
-      <p>A claim without sources is schema-invalid. Sources carry content hashes.</p></div>
-    <div class="card"><h3>Time is first-class</h3>
-      <p>Claims have validity windows. Contradictions are represented, not merged.</p></div>
-    <div class="card"><h3>Permission-aware</h3>
-      <p>Packages declare their audience and attest that access control was enforced.</p></div>
-    <div class="card"><h3>Token-budgeted</h3>
-      <p>Salience defines deterministic truncation. The core survives any budget.</p></div>
-  </div>
+  <section id="connect">
+    <div class="wrap reveal">
+      <h2>Connect Cursor or Claude Code in 60 seconds</h2>
+      <p class="section-sub">MCP is the pipe. UCP is what flows through it.
+      Start the server, point your agent at it, done.</p>
+      <div class="steps">
+        <div class="step">
+          <h3>Start the server</h3>
+          <p class="what">Generates and caches packages on demand.</p>
+          <div class="cmd"><code>docker run --rm -p 8080:8080 \
+  -e GITHUB_TOKEN=ghp_yourtoken \
+  ghcr.io/ucpcore/ucp-server:latest</code><button class="copy" data-copy="docker run --rm -p 8080:8080 -e GITHUB_TOKEN=ghp_yourtoken ghcr.io/ucpcore/ucp-server:latest" aria-label="Copy Docker command"></button></div>
+        </div>
+        <div class="step">
+          <h3>Add it to <span class="mono">mcp.json</span></h3>
+          <p class="what">Cursor and Claude Code speak Streamable HTTP natively.</p>
+          <div class="cmd"><code>{
+  "mcpServers": {
+    "ucp": { "url": "http://localhost:8080/mcp" }
+  }
+}</code><button class="copy" data-copy='{
+  "mcpServers": {
+    "ucp": { "url": "http://localhost:8080/mcp" }
+  }
+}' aria-label="Copy mcp.json snippet"></button></div>
+        </div>
+      </div>
+      <p class="after-steps">Your agent now has <code>generate_context</code>,
+      <code>list_contexts</code>, <code>get_context</code> and
+      <code>get_context_markdown</code>. Ask it to load context for
+      <code>owner/repo#123</code> or <code>PROJ-123</code>. Prefer plain HTTP?
+      The same server exposes <code>POST /v1/generate</code>.</p>
+    </div>
+  </section>
 
-  <h2>Measured on real issues</h2>
-  <p>A 596-comment GitHub thread (<code>microsoft/vscode#519</code>):
-  ~18,500 tokens raw → <strong>~1,200 tokens</strong> as a UCP, with decisions,
-  timeline and hashed sources intact. Reproducible:
-  <a href="https://github.com/ucpcore/ucp/blob/main/tools/benchmark_context.py">tools/benchmark_context.py</a>.</p>
-  <p>With optional LLM enrichment (<code>ucp-gen --llm</code>, any
-  OpenAI-compatible endpoint), the same thread — 200 of 596 comments in the
-  package, 17 sources, ~1,623 tokens — also yields what no structured GitHub
-  field carries: a <strong>conflict</strong> recording the "Electron vs
-  hard-coded styles" dispute with both positions citing hashed comments, and
-  a <strong>rejected decision</strong> stating the request is off the
-  roadmap. Every LLM-added claim must cite real source ids; the package
-  stays schema-valid.</p>
+  <section id="measured">
+    <div class="wrap reveal">
+      <h2>Measured on real issues</h2>
+      <p class="section-sub">Same token estimator on both sides (~4 chars/token).
+      "Raw thread" is the text you would otherwise paste into the model:
+      title, body, comments, linked-PR bodies.</p>
+      <div class="bench-box">
+        <table>
+          <thead>
+            <tr><th>Issue</th><th>Comments</th><th class="n">Raw thread</th><th class="n">UCP</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="issue">microsoft/vscode#519</span></td><td>first 200 of 596</td><td class="n">~18,500</td><td class="n win">~1,200</td></tr>
+            <tr><td><span class="issue">rust-lang/rust#158622</span></td><td>12</td><td class="n">~4,450</td><td class="n win">~1,450</td></tr>
+            <tr><td><span class="issue">pallets/flask#5961</span></td><td>4</td><td class="n">~800</td><td class="n win">~700</td></tr>
+            <tr><td><span class="issue">pallets/flask#5948</span></td><td>0</td><td class="n">~500</td><td class="n win">~330</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="bench-note">The win grows with thread size: a decade-long discussion
+      collapses ~15&times; while keeping decisions, conflicts and provenance. On small
+      issues the token count is similar, but the package is still structured, hashed
+      and audience-aware. Reproduce with
+      <a href="https://github.com/ucpcore/ucp/blob/main/tools/benchmark_context.py">tools/benchmark_context.py</a>;
+      generated with ucp-gen 0.1.1, 2026-07-05.</p>
 
-  <h2>Get started</h2>
-  <pre><code># Python
-pip install pyucp        # import ucp
+      <div class="llm-block">
+        <div>
+          <h3>What <span class="mono">--llm</span> adds</h3>
+          <p class="lead">One call to any OpenAI-compatible endpoint extracts what
+          exists only in prose. Guarantees hold: the package stays schema-valid,
+          hallucinated citations are dropped, and if the endpoint is down you get
+          the structural package with a warning.</p>
+        </div>
+        <div>
+          <div class="finding">
+            <span class="kind">conflict</span>
+            <p>On <strong>vscode#519</strong>, the enriched package records the dispute
+            over whether <strong>Electron</strong> or <strong>VS Code's hard-coded
+            styles</strong> are to blame, both positions citing specific hashed comments.</p>
+          </div>
+          <div class="finding">
+            <span class="kind">decision <span class="status">[rejected]</span></span>
+            <p>The request is <strong>not on the roadmap</strong>. Stated only in prose
+            across a decade of comments, invisible to every structured GitHub field.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-# TypeScript
-npm install @ucpcore/core
-
-# MCP server for Cursor / Claude Code
-pip install ucp-mcp</code></pre>
-
-  <pre><code>import ucp
-
-pkg = ucp.load("task.ucp.json")     # validate + parse
-prompt = ucp.render(pkg, token_budget=1500)</code></pre>
-
-  <footer>
-    Apache 2.0 · <a href="https://github.com/ucpcore/ucp">github.com/ucpcore/ucp</a>
-    · Stewarded by the Context OS team
-  </footer>
+  <section id="package">
+    <div class="wrap reveal">
+      <h2>What's inside a package</h2>
+      <p class="section-sub">One JSON document. Every consumer, human or model,
+      gets the same predictable sections.</p>
+      <div class="schema" role="img" aria-label="UCP package structure: summary, must_know, decisions, conflicts, sources"><span class="b">{</span>
+  <span class="k">"summary"</span><span class="b">:   { … },</span>   <span class="cm">// what is going on, with cited sources</span>
+  <span class="k">"must_know"</span><span class="b">: [ … ],</span>   <span class="cm">// facts, each with a salience score</span>
+  <span class="k">"decisions"</span><span class="b">: [ … ],</span>   <span class="cm">// what was decided, when, with status</span>
+  <span class="k">"conflicts"</span><span class="b">: [ … ],</span>   <span class="cm">// contradictions, kept visible instead of merged</span>
+  <span class="k">"sources"</span><span class="b">:   { … }</span>    <span class="cm">// every claim cites sources; each sha256-hashed</span>
+<span class="b">}</span></div>
+      <p class="schema-note">A canonical rendering algorithm turns any package into
+      a deterministic prompt. Under a token budget, <code>salience</code> defines
+      the truncation order: noise drops first, the core survives. A claim without
+      sources is schema-invalid.</p>
+    </div>
+  </section>
 </main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="https://github.com/ucpcore/ucp">GitHub</a>
+    <a href="https://github.com/ucpcore/ucp/blob/main/SPEC.md">Specification</a>
+    <a href="https://pypi.org/project/ucp-gen/">PyPI: ucp-gen</a>
+    <a href="https://pypi.org/project/ucp-mcp/">ucp-mcp</a>
+    <a href="https://pypi.org/project/pyucp/">pyucp</a>
+    <a href="https://www.npmjs.com/package/@ucpcore/core">npm: @ucpcore/core</a>
+    <span class="lic">v0.1.0-draft &middot; Apache-2.0</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* tabs */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function selectTab(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+  }
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener("click", function () { selectTab(tab); });
+    tab.addEventListener("keydown", function (e) {
+      var next = null;
+      if (e.key === "ArrowRight") next = tabs[(i + 1) % tabs.length];
+      if (e.key === "ArrowLeft") next = tabs[(i - 1 + tabs.length) % tabs.length];
+      if (next) { next.focus(); selectTab(next); e.preventDefault(); }
+    });
+  });
+
+  /* copy buttons */
+  var copyIcon = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 3.5v5A1.5 1.5 0 0 0 4 10h1.5"/></svg>';
+  var checkIcon = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8.5l3.5 3.5L13 4.5"/></svg>';
+  Array.prototype.forEach.call(document.querySelectorAll(".copy"), function (btn) {
+    btn.innerHTML = copyIcon;
+    btn.addEventListener("click", function () {
+      navigator.clipboard.writeText(btn.getAttribute("data-copy")).then(function () {
+        btn.classList.add("done");
+        btn.innerHTML = checkIcon + "<span>copied</span>";
+        setTimeout(function () {
+          btn.classList.remove("done");
+          btn.innerHTML = copyIcon;
+        }, 1600);
+      });
+    });
+  });
+
+  /* reveal + terminal on scroll */
+  var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var targets = Array.prototype.slice.call(document.querySelectorAll(".reveal, .term"));
+  if (reduced || !("IntersectionObserver" in window)) {
+    targets.forEach(function (el) { el.classList.add("in", "armed"); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add(entry.target.classList.contains("term") ? "armed" : "in");
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.25 });
+    targets.forEach(function (el) { io.observe(el); });
+  }
+})();
+</script>
 </body>
 </html>
