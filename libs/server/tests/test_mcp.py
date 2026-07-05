@@ -69,3 +69,45 @@ async def test_unknown_id_lists_available(mcp):
 async def test_empty_cache_message(mcp):
     answer = await _call(mcp, "list_contexts")
     assert "No context packages cached" in answer
+
+
+async def _render_prompt(mcp, name, arguments):
+    async with Client(mcp) as client:
+        result = await client.get_prompt(name, arguments)
+    return result.messages[0].content.text
+
+
+async def test_prompt_inventory(mcp):
+    async with Client(mcp) as client:
+        prompts = {prompt.name for prompt in await client.list_prompts()}
+    assert prompts == {"ucp_context", "ucp_catchup"}
+
+
+async def test_ucp_context_prompt_detects_github(mcp):
+    text = await _render_prompt(mcp, "ucp_context", {"ref": "acme/rocket#42"})
+    assert 'source="github"' in text
+    assert 'ref="acme/rocket#42"' in text
+    assert "generate_context" in text
+    assert "authoritative task context" in text
+    assert "llm" not in text
+
+
+async def test_ucp_context_prompt_detects_jira_and_llm(mcp):
+    text = await _render_prompt(mcp, "ucp_context", {"ref": "PROJ-123", "llm": True})
+    assert 'source="jira"' in text
+    assert 'ref="PROJ-123"' in text
+    assert "llm=true" in text
+
+
+async def test_ucp_catchup_prompt(mcp):
+    text = await _render_prompt(mcp, "ucp_catchup", {"ref": "PROJ-7"})
+    assert 'source="jira"' in text
+    assert "decided" in text
+    assert "conflicts" in text
+    assert "open or unresolved" in text
+
+
+async def test_prompt_with_unrecognized_ref_asks_to_restate(mcp):
+    text = await _render_prompt(mcp, "ucp_context", {"ref": "not a ref"})
+    assert "neither a GitHub issue" in text
+    assert "owner/repo#123" in text

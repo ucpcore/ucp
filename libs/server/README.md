@@ -78,6 +78,58 @@ Tools exposed:
 | `get_context(id)` | Full UCP JSON for a cached package |
 | `get_context_markdown(id, token_budget?)` | Canonical Markdown rendering (SPEC §7), optionally truncated by salience |
 
+## Chat commands
+
+Once the MCP server is connected, you can drive it from the chat input —
+no plugins required.
+
+### MCP prompts (built into the server)
+
+The server exposes two [MCP prompts](https://modelcontextprotocol.io/docs/concepts/prompts)
+that clients surface as slash commands automatically:
+
+| Prompt | What it does |
+|---|---|
+| `ucp_context(ref, llm=false)` | Generate a package for `ref` and use it as the authoritative task context |
+| `ucp_catchup(ref)` | Generate a package and brief you: what's decided, what conflicts, what's still open |
+
+The source is detected from the shape of the reference: `owner/repo#123`
+is GitHub, `PROJ-123` is Jira.
+
+In **Claude Code** they appear as `/mcp__ucp__ucp_context` and
+`/mcp__ucp__ucp_catchup` (assuming the server is named `ucp` in your
+config):
+
+```
+/mcp__ucp__ucp_context pallets/flask#5961
+/mcp__ucp__ucp_catchup PROJ-123
+```
+
+In **Cursor** the server's prompts are available to the agent through the
+MCP connection; for a first-class `/ucp` command use the file below.
+
+### `/ucp` slash command (copy a file into your project)
+
+Ready-made command files live in [`clients/`](clients/):
+
+```bash
+# Cursor
+mkdir -p .cursor/commands && cp clients/cursor/ucp.md .cursor/commands/
+
+# Claude Code
+mkdir -p .claude/commands && cp clients/claude-code/ucp.md .claude/commands/
+```
+
+Then in either client:
+
+```
+/ucp pallets/flask#5961
+/ucp PROJ-123
+```
+
+The command tells the agent to call `generate_context` on the `ucp` MCP
+server and treat the returned package as the authoritative task context.
+
 ## REST API
 
 | Method & path | Purpose |

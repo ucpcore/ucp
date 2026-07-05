@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ucpcore-server"
-version = "0.1.0"
+version = "0.2.0"
 description = "Self-hosted UCP server: generate Universal Context Packages from GitHub/Jira over REST and MCP (Streamable HTTP). One command to run."
 readme = "README.md"
 license = "Apache-2.0"

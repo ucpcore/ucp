@@ -225,8 +225,11 @@ speaks Streamable HTTP; add it to `mcp.json`:
 ```
 
 The agent gets `generate_context`, `list_contexts`, `get_context` and
-`get_context_markdown`. For file-based workflows, `ucp-mcp` serves a
-directory of `.ucp.json` files over stdio.
+`get_context_markdown`, plus `ucp_context` / `ucp_catchup` MCP prompts —
+in Claude Code they show up as `/mcp__ucp__ucp_context` slash commands.
+Ready-made `/ucp` command files for Cursor and Claude Code live in
+[`libs/server/clients`](./libs/server/clients/). For file-based workflows,
+`ucp-mcp` serves a directory of `.ucp.json` files over stdio.
 
 **REST.** `POST /v1/generate` with
 `{"source": "github", "ref": "owner/repo#123"}` returns the package JSON;
