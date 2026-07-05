@@ -123,6 +123,26 @@ pip install ucp-mcp
 ucp-mcp --dir .   # exposes list_contexts / get_context / get_context_markdown
 ```
 
+## Measured on real issues
+
+Same token estimator on both sides (~4 chars/token); "raw thread" is the
+text you would otherwise paste into the model — title, body, comments,
+linked-PR bodies. Reproduce with
+[`tools/benchmark_context.py`](./tools/benchmark_context.py):
+
+| Issue | Comments | Raw thread | UCP |
+|---|---|---|---|
+| `microsoft/vscode#519` | first 200 of 596 | ~18,500 | **~1,200** |
+| `rust-lang/rust#158622` | 12 | ~4,450 | **~1,450** |
+| `pallets/flask#5961` | 4 | ~800 | **~700** |
+| `pallets/flask#5948` | 0 | ~500 | **~330** |
+
+The win grows with thread size — a decade-long discussion collapses ~15×
+while keeping decisions, conflicts and provenance. On small issues the
+token count is similar, but the package is still structured, hashed and
+audience-aware instead of being a wall of text. Generated with `ucp-gen`
+0.1.1, 2026-07-05.
+
 ## Industry-neutral by design
 
 The structure of "understanding a task" is the same everywhere; only the
