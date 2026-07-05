@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ucpcore-server"
+version = "0.1.0"
+description = "Self-hosted UCP server: generate Universal Context Packages from GitHub/Jira over REST and MCP (Streamable HTTP). One command to run."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "UCP contributors" }]
+keywords = ["ucp", "mcp", "llm", "context", "context-engineering", "server"]
+dependencies = [
+  "pyucp>=0.1.0",
+  "ucp-gen>=0.3.0",
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "fastmcp>=2.3",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.4",
+  "httpx>=0.27",
+]
+
+[project.urls]
+Specification = "https://github.com/ucpcore/ucp"
+Homepage = "https://ucpcore.org"
+
+[project.scripts]
+ucp-server = "ucp_server.__main__:main"
+ucpcore-server = "ucp_server.__main__:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ucp_server"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

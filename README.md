@@ -127,6 +127,16 @@ pip install ucp-mcp
 ucp-mcp --dir .   # exposes list_contexts / get_context / get_context_markdown
 ```
 
+Or run everything as one self-hosted server (REST + MCP over Streamable HTTP):
+
+```bash
+docker run --rm -p 8080:8080 ghcr.io/ucpcore/ucp-server:latest
+# or without Docker: uvx --from ucpcore-server ucp-server
+```
+
+Point Cursor / Claude Code at `http://localhost:8080/mcp`, or use the REST API
+(`POST /v1/generate`); see [`libs/server`](./libs/server/) for details.
+
 ## Measured on real issues
 
 Same token estimator on both sides (~4 chars/token); "raw thread" is the
@@ -202,6 +212,7 @@ the standard is open, the craft is the market.
 | `libs/typescript` | `@ucpcore/core` — types, validation, canonical rendering |
 | `libs/mcp-server` | `ucp-mcp` — serve packages over MCP |
 | `libs/gen` | `ucp-gen` — generate packages from GitHub issues |
+| `libs/server` | `ucpcore-server` — self-hosted generation service (REST + MCP) |
 
 ## Conformance profiles
 

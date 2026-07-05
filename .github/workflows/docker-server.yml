@@ -1,0 +1,38 @@
+name: Publish server image
+
+# Builds and publishes ghcr.io/ucpcore/ucp-server on server-vX.Y.Z tags.
+# Auth is the workflow's own GITHUB_TOKEN (packages: write) — no secrets.
+
+on:
+  push:
+    tags: ["server-v*"]
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Compute image tags
+        id: meta
+        run: |
+          version="${GITHUB_REF_NAME#server-v}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: libs/server
+          push: true
+          tags: |
+            ghcr.io/ucpcore/ucp-server:${{ steps.meta.outputs.version }}
+            ghcr.io/ucpcore/ucp-server:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
