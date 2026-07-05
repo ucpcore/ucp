@@ -44,6 +44,8 @@ docker run --rm -p 8080:8080 -e GITHUB_TOKEN=ghp_yourtoken \
 
 Point Cursor / Claude Code at `http://localhost:8080/mcp`, or use the REST
 API (`POST /v1/generate`); see [`libs/server`](./libs/server/) for details.
+Deploying beyond localhost? Set `UCP_SERVER_API_KEY` and send it as a
+`Bearer` header — see [server security notes](./libs/server/#security).
 
 Or generate a package directly with the CLI — by default no LLM involved,
 structure only:
