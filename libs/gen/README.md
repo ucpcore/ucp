@@ -23,6 +23,25 @@ ucp-gen github owner/repo#42 --markdown --token-budget 1500
 
 # include a "what changed since" diff (adds the ucp-temporal profile)
 ucp-gen github owner/repo#42 --since 2026-06-01T00:00:00Z
+
+# pretty-print any package in the terminal
+ucp-gen view task.ucp.json
+```
+
+The CLI is built for humans: spinners while fetching, checkmarks per step,
+a summary tree after writing, rich `--help` with grouped options, and an
+interactive prompt when you omit the issue reference. Decorations go to
+stderr — stdout stays pure JSON/Markdown, so piping is always safe:
+
+```
+✓ pallets/flask#5961 — issue + 4 comments + 1 linked PRs
+✓ valid ucp-core package — 6 sources, sha256-hashed
+📦 wrote task.ucp.json
+├── Flask 3.1.3 test breaks after Werkzeug update…
+├── claims      7 must-know
+├── decisions   1 (1 accepted)
+├── sources     6
+└── tokens      ~713 rendered
 ```
 
 ## Optional LLM enhancement (`--llm`)

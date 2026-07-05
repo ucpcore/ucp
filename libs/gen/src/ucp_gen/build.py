@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 SPEC_VERSION = "0.1.0"
-GENERATOR = {"name": "ucp-gen", "version": "0.2.0", "url": "https://github.com/ucpcore/ucp"}
+GENERATOR = {"name": "ucp-gen", "version": "0.3.0", "url": "https://github.com/ucpcore/ucp"}
 
 # Comments matching these are surfaced as proposed decisions (cheap heuristic;
 # merged PRs are the reliable "accepted" signal).
