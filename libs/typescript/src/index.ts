@@ -1,5 +1,5 @@
 /**
- * @ucp/core — reference library for the Universal Context Package specification.
+ * @ucpcore/core — reference library for the Universal Context Package specification.
  *
  * Spec: https://github.com/contextos/ucp (v0.1.0-draft)
  */

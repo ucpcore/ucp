@@ -1,4 +1,4 @@
-# @ucp/core — Universal Context Package reference library (TypeScript)
+# @ucpcore/core — Universal Context Package reference library (TypeScript)
 
 Reference implementation of the [UCP specification](../../specs/ucp/SPEC.md)
 (v0.1.0-draft): schema validation, TypeScript types, and canonical CommonMark
@@ -6,13 +6,13 @@ rendering for LLM prompts with token budgeting. Behavior-identical to the
 Python `ucp` package (verified by a cross-implementation parity test).
 
 ```bash
-npm install @ucp/core
+npm install @ucpcore/core
 ```
 
 ## Quickstart
 
 ```ts
-import { loads, render, verifyReferences, type UCPackage } from "@ucp/core";
+import { loads, render, verifyReferences, type UCPackage } from "@ucpcore/core";
 
 // Parse + validate (throws UCPValidationError on failure)
 const pkg: UCPackage = loads(jsonText);

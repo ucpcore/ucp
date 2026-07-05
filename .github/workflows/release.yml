@@ -3,7 +3,7 @@ name: Release
 # Releases are driven by tags:
 #   py-vX.Y.Z   -> publish pyucp to PyPI
 #   mcp-vX.Y.Z  -> publish ucp-mcp to PyPI
-#   ts-vX.Y.Z   -> publish @ucp/core to npm
+#   ts-vX.Y.Z   -> publish @ucpcore/core to npm
 #
 # PyPI uses Trusted Publishing (no long-lived tokens): configure the
 # publisher for this repo at https://pypi.org/manage/account/publishing/.
