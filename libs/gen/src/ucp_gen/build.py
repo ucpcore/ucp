@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 SPEC_VERSION = "0.1.0"
-GENERATOR = {"name": "ucp-gen", "version": "0.1.1", "url": "https://github.com/ucpcore/ucp"}
+GENERATOR = {"name": "ucp-gen", "version": "0.2.0", "url": "https://github.com/ucpcore/ucp"}
 
 # Comments matching these are surfaced as proposed decisions (cheap heuristic;
 # merged PRs are the reliable "accepted" signal).
@@ -56,9 +56,11 @@ def _first_paragraph(text: Optional[str], fallback: str) -> str:
         return fallback
     # Drop fenced code blocks entirely: logs/tracebacks are not a summary.
     prose = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+    prose = re.sub(r"\{code.*?\{code\}", "", prose, flags=re.DOTALL)  # Jira wiki code blocks
     for block in re.split(r"\n\s*\n", prose.strip()):
         lines = [ln for ln in block.splitlines()
-                 if not ln.lstrip().startswith(("#", "<!--", "![", "|"))]
+                 if not ln.lstrip().startswith(("#", "<!--", "![", "|"))
+                 and not re.match(r"\s*h[1-6]\.\s", ln)]  # Jira wiki headers
         cleaned = " ".join(" ".join(lines).split())
         if cleaned:
             return cleaned[:600]
@@ -310,3 +312,56 @@ def build_package(
         profiles.append("ucp-temporal")
         package["context_diff"] = {"since": since, "changes": diff_changes}
     return package
+
+
+def llm_docs(bundle: dict[str, Any], generated_at: str) -> list[dict[str, Any]]:
+    """Full-text documents for optional LLM enhancement (see ``llm.py``)."""
+    issue = bundle["issue"]
+    full = f"{bundle['owner']}/{bundle['repo']}"
+    docs = [{
+        "key": "issue",
+        "label": f"Issue {full}#{issue['number']} by {issue['user']['login']}",
+        "text": f"{issue['title']}\n\n{issue.get('body') or ''}",
+        "source": {
+            "system": "github", "type": "ticket",
+            "title": f"{full}#{issue['number']}: {issue['title']}",
+            "url": issue["html_url"],
+            "author": _actor(issue.get("user")),
+            "created_at": _iso(issue.get("created_at")),
+            "content_hash": _hash(issue.get("body") or ""),
+            "retrieved_at": generated_at,
+        },
+    }]
+    for comment in bundle.get("comments", []):
+        if not (comment.get("body") or "").strip():
+            continue
+        docs.append({
+            "key": f"comment-{comment['id']}",
+            "label": f"Comment by {comment['user']['login']} at {comment.get('created_at', '?')}",
+            "text": comment["body"],
+            "source": {
+                "system": "github", "type": "comment",
+                "title": f"Comment by {comment['user']['login']}",
+                "url": comment["html_url"],
+                "author": _actor(comment.get("user")),
+                "created_at": _iso(comment.get("created_at")),
+                "content_hash": _hash(comment.get("body") or ""),
+                "retrieved_at": generated_at,
+            },
+        })
+    for pull in bundle.get("linked_pulls", []):
+        docs.append({
+            "key": f"pr-{pull['number']}",
+            "label": f"PR #{pull['number']} ({'merged' if pull.get('merged_at') else pull.get('state', 'open')})",
+            "text": f"{pull['title']}\n\n{pull.get('body') or ''}",
+            "source": {
+                "system": "github", "type": "pull_request",
+                "title": f"PR #{pull['number']}: {pull['title']}",
+                "url": pull["html_url"],
+                "author": _actor(pull.get("user")),
+                "created_at": _iso(pull.get("created_at")),
+                "content_hash": _hash(pull.get("body") or ""),
+                "retrieved_at": generated_at,
+            },
+        })
+    return docs

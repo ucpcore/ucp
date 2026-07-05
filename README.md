@@ -103,17 +103,21 @@ that every source passed an access-control check.
 
 ## Generate a real package in 30 seconds
 
-The reference toolchain turns any public GitHub issue into a UCP — no LLM
-involved, structure only:
+The reference toolchain turns any public GitHub issue or Jira ticket into
+a UCP — by default no LLM involved, structure only:
 
 ```bash
 pip install ucp-gen
 
 # JSON package: claims, decisions, timeline, hashed sources
 ucp-gen github pallets/flask#5961 -o task.ucp.json
+ucp-gen jira PROJ-123 -o task.ucp.json   # needs JIRA_BASE_URL + token
 
 # or the canonical LLM rendering, capped at 1500 tokens
 ucp-gen github pallets/flask#5961 --markdown --token-budget 1500
+
+# optional: add semantic understanding via any OpenAI-compatible endpoint
+ucp-gen github pallets/flask#5961 --llm -o task.ucp.json
 ```
 
 Serve the result to Cursor / Claude Code via the reference MCP server:
