@@ -436,6 +436,10 @@ footer { border-top: 1px solid var(--border); padding: 40px 0 56px; }
       <code>get_context_markdown</code>. Ask it to load context for
       <code>owner/repo#123</code> or <code>PROJ-123</code>. Prefer plain HTTP?
       The same server exposes <code>POST /v1/generate</code>.</p>
+      <p class="after-steps">Deploying beyond localhost? Set
+      <code>UCP_SERVER_API_KEY</code> and send it as a <code>Bearer</code>
+      header — see the <a href="https://github.com/ucpcore/ucp/tree/main/libs/server#security">server
+      security notes</a>.</p>
     </div>
   </section>
 
