@@ -94,6 +94,14 @@
   ~18,500 tokens raw → <strong>~1,200 tokens</strong> as a UCP, with decisions,
   timeline and hashed sources intact. Reproducible:
   <a href="https://github.com/ucpcore/ucp/blob/main/tools/benchmark_context.py">tools/benchmark_context.py</a>.</p>
+  <p>With optional LLM enrichment (<code>ucp-gen --llm</code>, any
+  OpenAI-compatible endpoint), the same thread — 200 of 596 comments in the
+  package, 17 sources, ~1,623 tokens — also yields what no structured GitHub
+  field carries: a <strong>conflict</strong> recording the "Electron vs
+  hard-coded styles" dispute with both positions citing hashed comments, and
+  a <strong>rejected decision</strong> stating the request is off the
+  roadmap. Every LLM-added claim must cite real source ids; the package
+  stays schema-valid.</p>
 
   <h2>Get started</h2>
   <pre><code># Python
