@@ -47,7 +47,7 @@ protocols; authentication. Those are producer concerns.
 
 - **Package** — a single UCP document.
 - **Producer** — software that assembles and emits packages.
-- **Consumer** — software (LLM adapter, sidebar UI, agent) that reads packages.
+- **Consumer** — software (LLM adapter, agent, end-user application) that reads packages.
 - **Claim** — an atomic statement with provenance (§4.4).
 - **Source** — an addressable origin document or record (§4.5).
 - **Audience** — the principal (user or agent) a package was assembled for.

@@ -83,7 +83,7 @@ Existing standards solve adjacent problems:
 
 ## What UCP gives you
 
-**Structure.** Every consumer — an LLM, an agent, a sidebar UI — receives the
+**Structure.** Every consumer — an LLM, an agent, any application — receives the
 same predictable sections: what is going on (`summary`), what you must know
 (`must_know`), why things were decided (`decisions`), what contradicts what
 (`conflicts`), what changed since your last visit (`context_diff`). The model
