@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 SPEC_VERSION = "0.1.0"
-GENERATOR = {"name": "ucp-gen", "version": "0.1.0", "url": "https://github.com/ucpcore/ucp"}
+GENERATOR = {"name": "ucp-gen", "version": "0.1.1", "url": "https://github.com/ucpcore/ucp"}
 
 # Comments matching these are surfaced as proposed decisions (cheap heuristic;
 # merged PRs are the reliable "accepted" signal).
@@ -40,16 +40,27 @@ def _excerpt(text: Optional[str]) -> Optional[str]:
     if not text:
         return None
     flat = " ".join(text.split())
-    return flat[:_EXCERPT_LEN] + ("…" if len(flat) > _EXCERPT_LEN else "")
+    if len(flat) <= _EXCERPT_LEN:
+        return flat
+    cut = flat.rfind(" ", 0, _EXCERPT_LEN)
+    return flat[: cut if cut > _EXCERPT_LEN // 2 else _EXCERPT_LEN] + "…"
 
 
 def _first_paragraph(text: Optional[str], fallback: str) -> str:
+    """First block of the body that carries meaning, not template markup.
+
+    Issue templates produce bodies like "## Description\n\n<the actual text>";
+    headers, images, HTML comments, tables and code fences are skipped.
+    """
     if not text:
         return fallback
-    for block in re.split(r"\n\s*\n", text.strip()):
-        cleaned = " ".join(block.split())
-        # Skip pure-markup blocks (images, HTML comments, headers-only).
-        if cleaned and not cleaned.startswith(("<!--", "![", "|")):
+    # Drop fenced code blocks entirely: logs/tracebacks are not a summary.
+    prose = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+    for block in re.split(r"\n\s*\n", prose.strip()):
+        lines = [ln for ln in block.splitlines()
+                 if not ln.lstrip().startswith(("#", "<!--", "![", "|"))]
+        cleaned = " ".join(" ".join(lines).split())
+        if cleaned:
             return cleaned[:600]
     return fallback
 
@@ -155,11 +166,15 @@ def build_package(
         )
 
     # Recent comments become low-salience claims: newer ⇒ more relevant.
-    recent = sorted(comments, key=lambda c: c.get("created_at") or "", reverse=True)
+    # Empty bodies are filtered before the recency window so they cannot
+    # crowd out substantive comments.
+    recent = sorted(
+        (c for c in comments if (c.get("body") or "").strip()),
+        key=lambda c: c.get("created_at") or "",
+        reverse=True,
+    )
     for rank, comment in enumerate(recent[:_MAX_COMMENT_CLAIMS]):
         body = _excerpt(comment.get("body"))
-        if not body:
-            continue
         claim(
             f"comment-{comment['id']}-gist",
             f"{comment['user']['login']}: {body}",
@@ -257,6 +272,15 @@ def build_package(
         "relation": "implements" if pull.get("merged_at") else "references",
         "salience": 0.9 if pull.get("merged_at") else 0.7,
     } for pull in pulls]
+
+    # Keep only sources that something actually cites: on busy issues the
+    # registry would otherwise dwarf the content (200 comments -> 200 sources)
+    # and blow the token budget of the rendered Sources section.
+    referenced: set[str] = {"issue"}
+    for section in (must_know, decisions):
+        for item in section:
+            referenced.update(item["sources"])
+    sources = {key: value for key, value in sources.items() if key in referenced}
 
     profiles = ["ucp-core"]
     package: dict[str, Any] = {

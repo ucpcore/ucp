@@ -86,6 +86,41 @@ def test_no_since_means_no_diff():
     assert data["profiles"] == ["ucp-core"]
 
 
+def test_summary_skips_template_headers_and_code_fences():
+    bundle = copy.deepcopy(BUNDLE)
+    bundle["issue"]["body"] = (
+        "## Description\n\n```\nTraceback: boom\n```\n\n"
+        "The actual explanation of the problem.\n\nMore details."
+    )
+    pkg = ucp.Package.model_validate(build_package(bundle, now=NOW))
+    assert pkg.summary.text == "The actual explanation of the problem."
+
+
+def test_unreferenced_comment_sources_are_pruned():
+    bundle = copy.deepcopy(BUNDLE)
+    # 30 extra comments with empty bodies: they produce no claims, so their
+    # sources must not survive into the registry.
+    for i in range(30):
+        bundle["comments"].append({
+            "id": 1000 + i, "user": {"login": f"user{i}"},
+            "created_at": f"2026-06-0{1 + i % 9}T00:00:00Z",
+            "html_url": f"https://github.com/acme/rocket/issues/42#issuecomment-{1000 + i}",
+            "body": "",
+        })
+    data = build_package(bundle, now=NOW)
+    ucp.validate(data)
+    assert len(data["sources"]) == 4  # unchanged: issue + 2 real comments + PR
+    assert ucp.Package.model_validate(data).verify_references() == []
+
+
+def test_excerpt_cuts_on_word_boundary():
+    bundle = copy.deepcopy(BUNDLE)
+    bundle["comments"][0]["body"] = "word " * 100  # far beyond the excerpt limit
+    data = build_package(bundle, now=NOW)
+    excerpt = data["sources"]["comment-100"]["excerpt"]
+    assert excerpt.endswith("word…")
+
+
 def test_rendering_fits_budget_and_keeps_core():
     pkg = ucp.Package.model_validate(build())
     tight = pkg.render(token_budget=500)
