@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ucp-mcp"
+version = "0.1.0"
+description = "Reference MCP server for the Universal Context Package: serves UCP documents to any MCP-capable agent (Cursor, Claude Code, ...)"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [{ name = "Context OS Team" }]
+keywords = ["ucp", "mcp", "llm", "context", "context-engineering"]
+dependencies = [
+  "pyucp>=0.1.0",
+  "mcp>=1.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+
+[project.scripts]
+ucp-mcp = "ucp_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ucp_mcp"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

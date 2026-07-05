@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec.contextos.ai/ucp/0.1/ucp.schema.json",
+  "title": "Universal Context Package",
+  "description": "An open format for packaging task context for LLMs: claim-based, provenance-mandatory, time-aware, permission-aware. See SPEC.md for normative text.",
+  "type": "object",
+  "required": ["ucp_version", "id", "generated_at", "generator", "entity", "sources"],
+  "properties": {
+    "ucp_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "Semver of the UCP spec this package conforms to."
+    },
+    "id": {
+      "type": "string",
+      "format": "uri",
+      "description": "Globally unique package identifier. urn:uuid: recommended."
+    },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "generator": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "version": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "profiles": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Conformance profiles claimed, e.g. ucp-core, ucp-temporal, ucp-secure."
+    },
+    "language": {
+      "type": "string",
+      "description": "BCP 47 language tag of the textual content."
+    },
+    "audience": { "$ref": "#/$defs/Audience" },
+    "entity": { "$ref": "#/$defs/Entity" },
+    "situation": {
+      "type": "string",
+      "description": "One line: why this package was assembled."
+    },
+    "summary": { "$ref": "#/$defs/Summary" },
+    "must_know": { "type": "array", "items": { "$ref": "#/$defs/Claim" } },
+    "constraints": { "type": "array", "items": { "$ref": "#/$defs/Claim" } },
+    "risks": { "type": "array", "items": { "$ref": "#/$defs/Claim" } },
+    "recommended_actions": { "type": "array", "items": { "$ref": "#/$defs/Claim" } },
+    "decisions": { "type": "array", "items": { "$ref": "#/$defs/Decision" } },
+    "conflicts": { "type": "array", "items": { "$ref": "#/$defs/Conflict" } },
+    "context_diff": { "$ref": "#/$defs/ContextDiff" },
+    "history": { "type": "array", "items": { "$ref": "#/$defs/Event" } },
+    "dependencies": { "type": "array", "items": { "$ref": "#/$defs/EntityRef" } },
+    "related_objects": { "type": "array", "items": { "$ref": "#/$defs/RelatedObject" } },
+    "sources": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "$ref": "#/$defs/Source" },
+      "description": "Provenance registry. Keys are package-local identifiers."
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "token_estimate": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)+$",
+        "description": "Reverse-DNS namespaced extension keys."
+      },
+      "description": "Producer-specific data. Must not alter the meaning of standard fields."
+    }
+  },
+  "$defs": {
+    "EntityRef": {
+      "type": "object",
+      "required": ["system", "type", "id"],
+      "properties": {
+        "system": {
+          "type": "string",
+          "description": "Source system, lowercase. Open vocabulary: jira, confluence, github, gitlab, gdrive, slack, email, bitrix24, 1c, filesystem, custom."
+        },
+        "type": {
+          "type": "string",
+          "description": "Object type within the system. Open vocabulary: issue, page, pull_request, file, message, record."
+        },
+        "id": { "type": "string" },
+        "url": { "type": "string", "format": "uri" }
+      }
+    },
+    "Entity": {
+      "type": "object",
+      "required": ["ref", "title"],
+      "properties": {
+        "ref": { "$ref": "#/$defs/EntityRef" },
+        "title": { "type": "string" },
+        "status": { "type": "string" },
+        "assignee": { "$ref": "#/$defs/Actor" },
+        "attributes": {
+          "type": "object",
+          "description": "System-specific fields, non-normative."
+        }
+      }
+    },
+    "Actor": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "display_name": { "type": "string" },
+        "role": { "type": "string" }
+      }
+    },
+    "Summary": {
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string", "description": "Plain text or CommonMark." },
+        "sources": { "$ref": "#/$defs/SourceKeys" },
+        "confidence": { "$ref": "#/$defs/UnitInterval" }
+      }
+    },
+    "Claim": {
+      "type": "object",
+      "required": ["id", "text", "sources"],
+      "properties": {
+        "id": { "type": "string" },
+        "text": { "type": "string", "description": "Plain text or CommonMark." },
+        "kind": {
+          "type": "string",
+          "description": "Open vocabulary: fact, instruction, warning, assumption."
+        },
+        "salience": { "$ref": "#/$defs/UnitInterval" },
+        "confidence": { "$ref": "#/$defs/UnitInterval" },
+        "sources": { "$ref": "#/$defs/SourceKeysRequired" },
+        "asserted_at": { "type": "string", "format": "date-time" },
+        "valid_from": { "type": "string", "format": "date-time" },
+        "valid_to": {
+          "oneOf": [
+            { "type": "string", "format": "date-time" },
+            { "type": "null" }
+          ],
+          "description": "null or absent means currently valid."
+        },
+        "tags": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "Decision": {
+      "type": "object",
+      "required": ["id", "decision", "status", "sources"],
+      "properties": {
+        "id": { "type": "string" },
+        "decision": { "type": "string" },
+        "rationale": { "type": "string" },
+        "status": { "enum": ["proposed", "accepted", "superseded", "rejected"] },
+        "decided_by": { "$ref": "#/$defs/Actor" },
+        "decided_at": { "type": "string", "format": "date-time" },
+        "supersedes": { "type": "string", "description": "id of an earlier decision." },
+        "sources": { "$ref": "#/$defs/SourceKeysRequired" }
+      }
+    },
+    "Conflict": {
+      "type": "object",
+      "required": ["id", "description", "positions"],
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "positions": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["claim", "sources"],
+            "properties": {
+              "claim": { "type": "string" },
+              "sources": { "$ref": "#/$defs/SourceKeysRequired" },
+              "asserted_at": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "resolution_hint": { "type": "string" },
+        "severity": { "enum": ["low", "medium", "high"] }
+      }
+    },
+    "ContextDiff": {
+      "type": "object",
+      "required": ["since", "changes"],
+      "properties": {
+        "since": { "type": "string", "format": "date-time" },
+        "baseline": {
+          "type": "string",
+          "description": "Open vocabulary: last_view, last_package, explicit."
+        },
+        "changes": {
+          "type": "array",
+          "description": "Empty array is meaningful: nothing changed.",
+          "items": {
+            "type": "object",
+            "required": ["type", "summary"],
+            "properties": {
+              "type": { "enum": ["added", "updated", "removed", "status_changed"] },
+              "target": {
+                "type": "string",
+                "description": "Open vocabulary: document, comment, field, decision, risk, dependency."
+              },
+              "summary": { "type": "string" },
+              "occurred_at": { "type": "string", "format": "date-time" },
+              "actor": { "$ref": "#/$defs/Actor" },
+              "sources": { "$ref": "#/$defs/SourceKeys" }
+            }
+          }
+        }
+      }
+    },
+    "Event": {
+      "type": "object",
+      "required": ["occurred_at", "summary"],
+      "properties": {
+        "occurred_at": { "type": "string", "format": "date-time" },
+        "summary": { "type": "string" },
+        "actor": { "$ref": "#/$defs/Actor" },
+        "sources": { "$ref": "#/$defs/SourceKeys" }
+      }
+    },
+    "RelatedObject": {
+      "type": "object",
+      "required": ["ref", "title"],
+      "properties": {
+        "ref": { "$ref": "#/$defs/EntityRef" },
+        "title": { "type": "string" },
+        "relation": {
+          "type": "string",
+          "description": "Open vocabulary: blocks, blocked_by, supersedes, implements, mentions, similar."
+        },
+        "salience": { "$ref": "#/$defs/UnitInterval" },
+        "reason": {
+          "type": "string",
+          "description": "Human-readable: why this object is in the package."
+        }
+      }
+    },
+    "Source": {
+      "type": "object",
+      "required": ["system", "type", "title"],
+      "properties": {
+        "system": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "author": { "$ref": "#/$defs/Actor" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "content_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "description": "SHA-256 of the content as retrieved, for integrity verification."
+        },
+        "retrieved_at": { "type": "string", "format": "date-time" },
+        "trust": { "$ref": "#/$defs/UnitInterval" },
+        "excerpt": { "type": "string" }
+      }
+    },
+    "Audience": {
+      "type": "object",
+      "required": ["principal"],
+      "properties": {
+        "principal": { "$ref": "#/$defs/Actor" },
+        "access_control": {
+          "type": "object",
+          "required": ["enforced"],
+          "properties": {
+            "enforced": { "type": "boolean" },
+            "mechanism": {
+              "type": "string",
+              "description": "Open vocabulary: rebac, rbac, acl, none."
+            },
+            "checked_at": { "type": "string", "format": "date-time" },
+            "audit_ref": {
+              "type": "string",
+              "description": "Opaque reference into the producer's audit log."
+            }
+          }
+        }
+      }
+    },
+    "SourceKeys": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Keys into the top-level sources map."
+    },
+    "SourceKeysRequired": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Keys into the top-level sources map. At least one required: a claim without provenance is invalid."
+    },
+    "UnitInterval": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

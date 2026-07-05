@@ -1,0 +1,31 @@
+name: Test reference libraries
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e "libs/python[dev]"
+      - run: pytest libs/python
+      - run: pip install -e "libs/mcp-server[dev]"
+      - run: pytest libs/mcp-server
+
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+        working-directory: libs/typescript
+      - run: npm run sync-schema && npm test && npm run build
+        working-directory: libs/typescript

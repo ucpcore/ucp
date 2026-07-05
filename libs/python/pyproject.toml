@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+# Distribution name is "pyucp" ("ucp" is taken on PyPI by an SMS protocol
+# wrapper); the import name remains "ucp".
+name = "pyucp"
+version = "0.1.0"
+description = "Universal Context Package (UCP) — reference library: validation, typed models, canonical LLM rendering"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [{ name = "Context OS Team" }]
+keywords = ["ucp", "llm", "context", "context-engineering", "mcp"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+  "pydantic>=2.7",
+  "jsonschema>=4.21",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.urls]
+Specification = "https://github.com/contextos/ucp"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ucp"]

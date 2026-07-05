@@ -1,0 +1,56 @@
+name: Release
+
+# Releases are driven by tags:
+#   py-vX.Y.Z   -> publish pyucp to PyPI
+#   mcp-vX.Y.Z  -> publish ucp-mcp to PyPI
+#   ts-vX.Y.Z   -> publish @ucp/core to npm
+#
+# PyPI uses Trusted Publishing (no long-lived tokens): configure the
+# publisher for this repo at https://pypi.org/manage/account/publishing/.
+# npm requires the NPM_TOKEN secret (automation token).
+
+on:
+  push:
+    tags: ["py-v*", "mcp-v*", "ts-v*"]
+
+jobs:
+  pypi:
+    if: startsWith(github.ref_name, 'py-v') || startsWith(github.ref_name, 'mcp-v')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # PyPI Trusted Publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Select package directory
+        id: pkg
+        run: |
+          if [[ "${GITHUB_REF_NAME}" == py-v* ]]; then
+            echo "dir=libs/python" >> "$GITHUB_OUTPUT"
+          else
+            echo "dir=libs/mcp-server" >> "$GITHUB_OUTPUT"
+          fi
+      - run: pip install build && python -m build ${{ steps.pkg.outputs.dir }}
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ${{ steps.pkg.outputs.dir }}/dist
+
+  npm:
+    if: startsWith(github.ref_name, 'ts-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install
+        working-directory: libs/typescript
+      - run: npm run sync-schema && npm test && npm run build
+        working-directory: libs/typescript
+      - run: npm publish --access public
+        working-directory: libs/typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

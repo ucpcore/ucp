@@ -1,0 +1,16 @@
+{
+  "ucp_version": "0.1.0",
+  "id": "urn:uuid:00000000-0000-4000-8000-000000000006",
+  "generated_at": "2026-07-05T12:00:00Z",
+  "generator": { "name": "bad-producer" },
+  "entity": {
+    "ref": { "system": "jira", "type": "issue", "id": "X-1" },
+    "title": "Extension keys must be reverse-DNS namespaced"
+  },
+  "sources": {
+    "s": { "system": "jira", "type": "issue", "title": "X-1" }
+  },
+  "extensions": {
+    "myext": { "anything": true }
+  }
+}

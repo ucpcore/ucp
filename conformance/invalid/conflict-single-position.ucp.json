@@ -1,0 +1,22 @@
+{
+  "ucp_version": "0.1.0",
+  "id": "urn:uuid:00000000-0000-4000-8000-000000000005",
+  "generated_at": "2026-07-05T12:00:00Z",
+  "generator": { "name": "bad-producer" },
+  "entity": {
+    "ref": { "system": "jira", "type": "issue", "id": "X-1" },
+    "title": "A conflict needs at least two positions"
+  },
+  "sources": {
+    "s": { "system": "jira", "type": "issue", "title": "X-1" }
+  },
+  "conflicts": [
+    {
+      "id": "conf-1",
+      "description": "One-sided conflict is not a conflict.",
+      "positions": [
+        { "claim": "Only one side.", "sources": ["s"] }
+      ]
+    }
+  ]
+}
