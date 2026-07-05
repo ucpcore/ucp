@@ -101,6 +101,28 @@ content hashes. An AI summary you can audit is an AI summary you can trust.
 **Access safety.** A package declares who it was assembled for and attests
 that every source passed an access-control check.
 
+## Generate a real package in 30 seconds
+
+The reference toolchain turns any public GitHub issue into a UCP — no LLM
+involved, structure only:
+
+```bash
+pip install ucp-gen
+
+# JSON package: claims, decisions, timeline, hashed sources
+ucp-gen github pallets/flask#5961 -o task.ucp.json
+
+# or the canonical LLM rendering, capped at 1500 tokens
+ucp-gen github pallets/flask#5961 --markdown --token-budget 1500
+```
+
+Serve the result to Cursor / Claude Code via the reference MCP server:
+
+```bash
+pip install ucp-mcp
+ucp-mcp --dir .   # exposes list_contexts / get_context / get_context_markdown
+```
+
 ## Industry-neutral by design
 
 The structure of "understanding a task" is the same everywhere; only the
@@ -124,6 +146,11 @@ the standard is open, the craft is the market.
 | [`SPEC.md`](./SPEC.md) | The normative specification |
 | [`schema/ucp.schema.json`](./schema/ucp.schema.json) | JSON Schema (draft 2020-12) |
 | [`examples/`](./examples/) | Complete example packages |
+| [`conformance/`](./conformance/) | Conformance test suite (valid / invalid packages) |
+| `libs/python` | `pyucp` — models, validation, canonical rendering |
+| `libs/typescript` | `@ucpcore/core` — types, validation, canonical rendering |
+| `libs/mcp-server` | `ucp-mcp` — serve packages over MCP |
+| `libs/gen` | `ucp-gen` — generate packages from GitHub issues |
 
 ## Conformance profiles
 

@@ -3,6 +3,7 @@ name: Release
 # Releases are driven by tags:
 #   py-vX.Y.Z   -> publish pyucp to PyPI
 #   mcp-vX.Y.Z  -> publish ucp-mcp to PyPI
+#   gen-vX.Y.Z  -> publish ucp-gen to PyPI
 #   ts-vX.Y.Z   -> publish @ucpcore/core to npm
 #
 # PyPI uses Trusted Publishing (no long-lived tokens): configure the
@@ -11,11 +12,11 @@ name: Release
 
 on:
   push:
-    tags: ["py-v*", "mcp-v*", "ts-v*"]
+    tags: ["py-v*", "mcp-v*", "gen-v*", "ts-v*"]
 
 jobs:
   pypi:
-    if: startsWith(github.ref_name, 'py-v') || startsWith(github.ref_name, 'mcp-v')
+    if: startsWith(github.ref_name, 'py-v') || startsWith(github.ref_name, 'mcp-v') || startsWith(github.ref_name, 'gen-v')
     runs-on: ubuntu-latest
     permissions:
       id-token: write # PyPI Trusted Publishing
@@ -29,6 +30,8 @@ jobs:
         run: |
           if [[ "${GITHUB_REF_NAME}" == py-v* ]]; then
             echo "dir=libs/python" >> "$GITHUB_OUTPUT"
+          elif [[ "${GITHUB_REF_NAME}" == gen-v* ]]; then
+            echo "dir=libs/gen" >> "$GITHUB_OUTPUT"
           else
             echo "dir=libs/mcp-server" >> "$GITHUB_OUTPUT"
           fi

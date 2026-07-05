@@ -17,6 +17,8 @@ jobs:
       - run: pytest libs/python
       - run: pip install -e "libs/mcp-server[dev]"
       - run: pytest libs/mcp-server
+      - run: pip install -e "libs/gen[dev]"
+      - run: pytest libs/gen
 
   typescript:
     runs-on: ubuntu-latest
