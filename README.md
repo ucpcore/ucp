@@ -1,17 +1,127 @@
 # Universal Context Package (UCP)
 
-**An open specification for packaging work context for Large Language Models.**
+**An open format that turns a sprawling issue thread into a small, verifiable
+context package for LLM agents.**
 
-Version: `0.1.0-draft` · License: Apache 2.0 · Status: Draft
+[![CI](https://img.shields.io/github/actions/workflow/status/ucpcore/ucp/validate.yml?branch=main&label=CI)](https://github.com/ucpcore/ucp/actions/workflows/validate.yml)
+[![PyPI: pyucp](https://img.shields.io/pypi/v/pyucp?label=pyucp)](https://pypi.org/project/pyucp/)
+[![PyPI: ucp-mcp](https://img.shields.io/pypi/v/ucp-mcp?label=ucp-mcp)](https://pypi.org/project/ucp-mcp/)
+[![PyPI: ucp-gen](https://img.shields.io/pypi/v/ucp-gen?label=ucp-gen)](https://pypi.org/project/ucp-gen/)
+[![npm: @ucpcore/core](https://img.shields.io/npm/v/%40ucpcore%2Fcore?label=%40ucpcore%2Fcore)](https://www.npmjs.com/package/@ucpcore/core)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
+
+Version: `0.1.0-draft` · Status: Draft · [ucpcore.org](https://ucpcore.org)
 
 ---
 
+## UCP in 10 seconds
+
+LLMs don't know your work context, and pasting a 596-comment thread into a
+prompt is not knowledge transfer. A UCP is one JSON document that carries what
+a person or agent needs to know *right now* to act on a task — with every
+claim cited, every source hashed, and a deterministic rendering under any
+token budget:
+
+```
+task.ucp.json
+├── summary        what is going on, with cited sources
+├── must_know      facts, ranked by salience
+├── decisions      what was decided, when, with status
+├── conflicts      contradictions, kept visible instead of merged
+├── context_diff   what changed since your last visit
+└── sources        every claim cites one; each sha256-hashed
+```
+
+## Try it in 30 seconds
+
+Run everything as one self-hosted server (REST + MCP over Streamable HTTP):
+
+```bash
+docker run --rm -p 8080:8080 -e GITHUB_TOKEN=ghp_yourtoken \
+  ghcr.io/ucpcore/ucp-server:latest
+# or without Docker: uvx --from ucpcore-server ucp-server
+```
+
+Point Cursor / Claude Code at `http://localhost:8080/mcp`, or use the REST
+API (`POST /v1/generate`); see [`libs/server`](./libs/server/) for details.
+
+Or generate a package directly with the CLI — by default no LLM involved,
+structure only:
+
+```bash
+pip install ucp-gen
+
+# JSON package: claims, decisions, timeline, hashed sources
+ucp-gen github pallets/flask#5961 -o task.ucp.json
+ucp-gen jira PROJ-123 -o task.ucp.json   # needs JIRA_BASE_URL + token
+
+# or the canonical LLM rendering, capped at 1500 tokens
+ucp-gen github pallets/flask#5961 --markdown --token-budget 1500
+
+# optional: add semantic understanding via any OpenAI-compatible endpoint
+ucp-gen github pallets/flask#5961 --llm -o task.ucp.json
+```
+
+Serve a directory of generated packages to agents via the stdio MCP server:
+
+```bash
+pip install ucp-mcp
+ucp-mcp --dir .   # exposes list_contexts / get_context / get_context_markdown
+```
+
+## Measured on real issues
+
+Same token estimator on both sides (~4 chars/token); "raw thread" is the
+text you would otherwise paste into the model — title, body, comments,
+linked-PR bodies. Reproduce with
+[`tools/benchmark_context.py`](./tools/benchmark_context.py):
+
+| Issue | Comments | Raw thread | UCP |
+|---|---|---|---|
+| `microsoft/vscode#519` | first 200 of 596 | ~18,500 | **~1,200** |
+| `rust-lang/rust#158622` | 12 | ~4,450 | **~1,450** |
+| `pallets/flask#5961` | 4 | ~800 | **~700** |
+| `pallets/flask#5948` | 0 | ~500 | **~330** |
+
+The win grows with thread size — a decade-long discussion collapses ~15×
+while keeping decisions, conflicts and provenance. On small issues the
+token count is similar, but the package is still structured, hashed and
+audience-aware instead of being a wall of text. Generated with `ucp-gen`
+0.1.1, 2026-07-05.
+
+## What `--llm` adds
+
+The default pipeline is purely structural: fast, deterministic, no model
+involved. The optional `--llm` flag adds a semantic layer through a single
+call to any OpenAI-compatible endpoint — `summary` becomes a synthesis of
+the whole thread instead of its opening paragraph, comments the model flags
+as pivotal get a salience boost, and decisions and conflicts that exist
+only in prose are extracted into their structured fields.
+
+Measured on `microsoft/vscode#519` — 596 comments over a decade, of which
+200 fit the package (17 sources, ~1,623 rendered tokens) — the enriched
+package captures what no structural field of GitHub carries. The summary
+explains *why* the feature was never built: the VS Code team declined
+because list and tree heights are hard-coded, the community relies on
+workarounds (zoom, custom CSS), and a community PR was not accepted. A
+`conflict` records the dispute over whether Electron or VS Code's
+hard-coded styles are to blame, both positions citing specific hashed
+comments. A `decision` with status `rejected` records that the request is
+not on the roadmap — information stated only in prose, invisible to the
+structural mode.
+
+The guarantees do not change. The package still validates against the
+schema; every LLM-added claim must cite source ids that exist in the
+package (hallucinated citations are dropped); `generator.llm_model` records
+which model produced the enrichment; and if the endpoint is unreachable the
+generator degrades gracefully to the structural package with a warning.
+
 ## The problem
 
-LLMs don't know your work context. Before an AI can help with a task, someone —
-a human or a pipeline — must gather the relevant documents, decisions,
-constraints, and risks scattered across Jira, Confluence, GitHub, Drive, CRMs
-and ERPs, and paste them into a prompt.
+Before an AI can help with a task, someone — a human or a pipeline — must
+gather the relevant documents, decisions, constraints, and risks scattered
+across Jira, Confluence, GitHub, Drive, CRMs and ERPs, and paste them into
+a prompt.
 
 Existing standards solve adjacent problems:
 
@@ -101,88 +211,41 @@ content hashes. An AI summary you can audit is an AI summary you can trust.
 **Access safety.** A package declares who it was assembled for and attests
 that every source passed an access-control check.
 
-## Generate a real package in 30 seconds
+## Integrations
 
-The reference toolchain turns any public GitHub issue or Jira ticket into
-a UCP — by default no LLM involved, structure only:
+**MCP (Cursor, Claude Code, any MCP-capable agent).** The self-hosted server
+speaks Streamable HTTP; add it to `mcp.json`:
 
-```bash
-pip install ucp-gen
-
-# JSON package: claims, decisions, timeline, hashed sources
-ucp-gen github pallets/flask#5961 -o task.ucp.json
-ucp-gen jira PROJ-123 -o task.ucp.json   # needs JIRA_BASE_URL + token
-
-# or the canonical LLM rendering, capped at 1500 tokens
-ucp-gen github pallets/flask#5961 --markdown --token-budget 1500
-
-# optional: add semantic understanding via any OpenAI-compatible endpoint
-ucp-gen github pallets/flask#5961 --llm -o task.ucp.json
+```json
+{
+  "mcpServers": {
+    "ucp": { "url": "http://localhost:8080/mcp" }
+  }
+}
 ```
 
-Serve the result to Cursor / Claude Code via the reference MCP server:
+The agent gets `generate_context`, `list_contexts`, `get_context` and
+`get_context_markdown`. For file-based workflows, `ucp-mcp` serves a
+directory of `.ucp.json` files over stdio.
+
+**REST.** `POST /v1/generate` with
+`{"source": "github", "ref": "owner/repo#123"}` returns the package JSON;
+`GET /v1/packages/{id}/markdown?token_budget=1500` returns the canonical
+rendering. See [`libs/server`](./libs/server/).
+
+**Libraries.** Validate, parse and render packages in your own code:
 
 ```bash
-pip install ucp-mcp
-ucp-mcp --dir .   # exposes list_contexts / get_context / get_context_markdown
+pip install pyucp            # Python: import ucp
+npm install @ucpcore/core    # TypeScript
 ```
 
-Or run everything as one self-hosted server (REST + MCP over Streamable HTTP):
+```python
+import ucp
 
-```bash
-docker run --rm -p 8080:8080 ghcr.io/ucpcore/ucp-server:latest
-# or without Docker: uvx --from ucpcore-server ucp-server
+pkg = ucp.load("task.ucp.json")     # validate + parse
+prompt = ucp.render(pkg, token_budget=1500)
 ```
-
-Point Cursor / Claude Code at `http://localhost:8080/mcp`, or use the REST API
-(`POST /v1/generate`); see [`libs/server`](./libs/server/) for details.
-
-## Measured on real issues
-
-Same token estimator on both sides (~4 chars/token); "raw thread" is the
-text you would otherwise paste into the model — title, body, comments,
-linked-PR bodies. Reproduce with
-[`tools/benchmark_context.py`](./tools/benchmark_context.py):
-
-| Issue | Comments | Raw thread | UCP |
-|---|---|---|---|
-| `microsoft/vscode#519` | first 200 of 596 | ~18,500 | **~1,200** |
-| `rust-lang/rust#158622` | 12 | ~4,450 | **~1,450** |
-| `pallets/flask#5961` | 4 | ~800 | **~700** |
-| `pallets/flask#5948` | 0 | ~500 | **~330** |
-
-The win grows with thread size — a decade-long discussion collapses ~15×
-while keeping decisions, conflicts and provenance. On small issues the
-token count is similar, but the package is still structured, hashed and
-audience-aware instead of being a wall of text. Generated with `ucp-gen`
-0.1.1, 2026-07-05.
-
-## What `--llm` adds
-
-The default pipeline is purely structural: fast, deterministic, no model
-involved. The optional `--llm` flag adds a semantic layer through a single
-call to any OpenAI-compatible endpoint — `summary` becomes a synthesis of
-the whole thread instead of its opening paragraph, comments the model flags
-as pivotal get a salience boost, and decisions and conflicts that exist
-only in prose are extracted into their structured fields.
-
-Measured on `microsoft/vscode#519` — 596 comments over a decade, of which
-200 fit the package (17 sources, ~1,623 rendered tokens) — the enriched
-package captures what no structural field of GitHub carries. The summary
-explains *why* the feature was never built: the VS Code team declined
-because list and tree heights are hard-coded, the community relies on
-workarounds (zoom, custom CSS), and a community PR was not accepted. A
-`conflict` records the dispute over whether Electron or VS Code's
-hard-coded styles are to blame, both positions citing specific hashed
-comments. A `decision` with status `rejected` records that the request is
-not on the roadmap — information stated only in prose, invisible to the
-structural mode.
-
-The guarantees do not change. The package still validates against the
-schema; every LLM-added claim must cite source ids that exist in the
-package (hallucinated citations are dropped); `generator.llm_model` records
-which model produced the enrichment; and if the endpoint is unreachable the
-generator degrades gracefully to the structural package with a warning.
 
 ## Industry-neutral by design
 
@@ -211,7 +274,7 @@ the standard is open, the craft is the market.
 | `libs/python` | `pyucp` — models, validation, canonical rendering |
 | `libs/typescript` | `@ucpcore/core` — types, validation, canonical rendering |
 | `libs/mcp-server` | `ucp-mcp` — serve packages over MCP |
-| `libs/gen` | `ucp-gen` — generate packages from GitHub issues |
+| `libs/gen` | `ucp-gen` — generate packages from GitHub issues and Jira tickets |
 | `libs/server` | `ucpcore-server` — self-hosted generation service (REST + MCP) |
 
 ## Conformance profiles
@@ -223,6 +286,12 @@ the standard is open, the craft is the market.
 | `ucp-secure` | Audience declared, access control attested, audit reference present |
 
 A minimal producer can ship `ucp-core` only. See [SPEC.md §5](./SPEC.md).
+
+## Governance and contributing
+
+The specification evolves in the open: see [`GOVERNANCE.md`](./GOVERNANCE.md)
+for how changes are proposed and accepted, and
+[`CONTRIBUTING.md`](./CONTRIBUTING.md) for how to get involved.
 
 ## Status of this document
 
