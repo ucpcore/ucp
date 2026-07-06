@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP &amp; API · UCP</title>
+<meta name="description" content="ucp-server MCP tools, prompts, REST API, and environment variables.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='SF Mono,Menlo,monospace' font-size='15' font-weight='700' fill='%234cc38a' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><span class="mark">{ }</span> UCP</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="/quickstart/">Quickstart</a>
+      <a href="/mcp/" class="active">MCP</a>
+      <a href="/spec/">Spec</a>
+      <a href="/examples/">Examples</a>
+      <a href="https://github.com/ucpcore/ucp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="doc-page">
+  <div class="wrap">
+    <h1>MCP &amp; API</h1>
+    <p class="doc-lead"><code>ucpcore-server</code> exposes MCP over Streamable HTTP at
+    <code>/mcp</code> and a REST API at <code>/v1</code>. Same process, same cache.</p>
+
+    <h2>MCP tools</h2>
+    <div class="doc-table">
+      <table>
+        <thead><tr><th>Tool</th><th>Parameters</th><th>Returns</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>generate_context</code></td>
+            <td><code>source</code> (<code>github</code> | <code>jira</code>),
+            <code>ref</code> (<code>owner/repo#123</code> or <code>PROJ-123</code>),
+            <code>llm</code> (optional, default <code>false</code>)</td>
+            <td>Builds a UCP; caches by id (e.g. <code>github-pallets-flask-5961</code>)</td>
+          </tr>
+          <tr>
+            <td><code>list_contexts</code></td>
+            <td>—</td>
+            <td>Cached packages: id, entity, title, freshness</td>
+          </tr>
+          <tr>
+            <td><code>get_context</code></td>
+            <td><code>id</code></td>
+            <td>Full UCP JSON</td>
+          </tr>
+          <tr>
+            <td><code>get_context_markdown</code></td>
+            <td><code>id</code>, optional <code>token_budget</code></td>
+            <td>Canonical Markdown rendering (SPEC §7)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>MCP prompts</h2>
+    <p>Built-in prompts that clients may surface as slash commands:</p>
+    <div class="doc-table">
+      <table>
+        <thead><tr><th>Prompt</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>ucp_context(ref, llm=false)</code></td>
+            <td>Generate a package and use it as authoritative task context</td>
+          </tr>
+          <tr>
+            <td><code>ucp_catchup(ref)</code></td>
+            <td>Generate and brief: decisions, conflicts, what's still open</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Reference shape is detected automatically: <code>owner/repo#123</code> → GitHub,
+    <code>PROJ-123</code> → Jira. In Cursor, prefer the project-local
+    <a href="/quickstart/">/ucp command</a> for a first-class chat shortcut.</p>
+
+    <h2>Cursor configuration</h2>
+    <div class="cmd"><code>{
+  "mcpServers": {
+    "ucp": { "url": "http://localhost:8080/mcp" }
+  }
+}</code><button class="copy" data-copy='{
+  "mcpServers": {
+    "ucp": { "url": "http://localhost:8080/mcp" }
+  }
+}' aria-label="Copy mcp.json"></button></div>
+    <p style="margin-top:14px">With API key:</p>
+    <div class="cmd"><code>{
+  "mcpServers": {
+    "ucp": {
+      "url": "http://localhost:8080/mcp",
+      "headers": { "Authorization": "Bearer YOUR_KEY" }
+    }
+  }
+}</code><button class="copy" data-copy='{
+  "mcpServers": {
+    "ucp": {
+      "url": "http://localhost:8080/mcp",
+      "headers": { "Authorization": "Bearer YOUR_KEY" }
+    }
+  }
+}' aria-label="Copy mcp.json with auth"></button></div>
+
+    <h2>REST API</h2>
+    <div class="doc-table">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>POST</code></td><td><code>/v1/generate</code></td><td>Generate package. Body: <code>{"source","ref","llm"?,"since"?,"audience"?}</code></td></tr>
+          <tr><td><code>GET</code></td><td><code>/v1/packages</code></td><td>List cached packages</td></tr>
+          <tr><td><code>GET</code></td><td><code>/v1/packages/{id}</code></td><td>Full UCP JSON</td></tr>
+          <tr><td><code>GET</code></td><td><code>/v1/packages/{id}/markdown?token_budget=1500</code></td><td>Rendered Markdown</td></tr>
+          <tr><td><code>GET</code></td><td><code>/healthz</code>, <code>/readyz</code></td><td>Probes (never authenticated)</td></tr>
+          <tr><td><code>GET</code></td><td><code>/docs</code></td><td>OpenAPI interactive docs</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cmd"><code>curl -s -X POST http://localhost:8080/v1/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"source": "github", "ref": "pallets/flask#5961"}'</code><button class="copy" data-copy='curl -s -X POST http://localhost:8080/v1/generate -H "Content-Type: application/json" -d "{\"source\": \"github\", \"ref\": \"pallets/flask#5961\"}"' aria-label="Copy REST example"></button></div>
+
+    <h2>Environment variables</h2>
+    <div class="doc-table">
+      <table>
+        <thead><tr><th>Variable</th><th>Default</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>UCP_SERVER_HOST</code></td><td><code>127.0.0.1</code></td><td>Bind address (Docker image: <code>0.0.0.0</code>)</td></tr>
+          <tr><td><code>UCP_SERVER_PORT</code></td><td><code>8080</code></td><td>Bind port</td></tr>
+          <tr><td><code>UCP_SERVER_API_KEY</code></td><td><em>unset</em></td><td>Bearer auth for all endpoints except health probes</td></tr>
+          <tr><td><code>UCP_CACHE_DIR</code></td><td><code>~/.cache/ucp-server</code></td><td>Disk cache directory</td></tr>
+          <tr><td><code>UCP_CACHE_TTL</code></td><td><code>900</code></td><td>Cache TTL in seconds; <code>0</code> disables cache</td></tr>
+          <tr><td><code>GITHUB_TOKEN</code> / <code>GH_TOKEN</code></td><td><em>unset</em></td><td>Higher GitHub rate limits</td></tr>
+          <tr><td><code>JIRA_BASE_URL</code></td><td><em>unset</em></td><td>e.g. <code>https://yourcompany.atlassian.net</code></td></tr>
+          <tr><td><code>JIRA_EMAIL</code></td><td><em>unset</em></td><td>Jira Cloud email (Basic auth)</td></tr>
+          <tr><td><code>JIRA_API_TOKEN</code></td><td><em>unset</em></td><td>Jira API token or PAT</td></tr>
+          <tr><td><code>UCP_LLM_BASE_URL</code></td><td><code>https://api.openai.com/v1</code></td><td>OpenAI-compatible endpoint for <code>llm: true</code></td></tr>
+          <tr><td><code>UCP_LLM_API_KEY</code></td><td><em>unset</em></td><td>LLM key (falls back to <code>OPENAI_API_KEY</code>)</td></tr>
+          <tr><td><code>UCP_LLM_MODEL</code></td><td><code>gpt-4o-mini</code></td><td>Model name for enrichment</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Stdio MCP (local files)</h2>
+    <p>To serve pre-generated <code>.ucp.json</code> files from a directory — without the HTTP server:</p>
+    <div class="cmd"><code>pip install ucp-mcp
+ucp-mcp --dir .</code><button class="copy" data-copy="pip install ucp-mcp&#10;ucp-mcp --dir ." aria-label="Copy ucp-mcp commands"></button></div>
+    <p>Exposes <code>list_contexts</code>, <code>get_context</code>, and
+    <code>get_context_markdown</code> over stdio. No <code>generate_context</code> —
+    generation is CLI (<code>ucp-gen</code>) or HTTP server.</p>
+
+    <h2>Security</h2>
+    <ul>
+      <li>Set <code>UCP_SERVER_API_KEY</code> for any non-localhost deployment.</li>
+      <li>Clients pass references only — the server never fetches arbitrary URLs (no SSRF).</li>
+      <li>Request bodies capped at 64 KiB; unknown fields rejected.</li>
+      <li>Full notes: <a href="https://github.com/ucpcore/ucp/tree/main/libs/server#security">libs/server#security</a></li>
+    </ul>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="/">Home</a>
+    <a href="/quickstart/">Quickstart</a>
+    <a href="/spec/">Spec</a>
+    <a href="/examples/">Examples</a>
+    <a href="https://github.com/ucpcore/ucp/tree/main/libs/server">Server README</a>
+    <span class="lic">v0.1.0-draft · Apache-2.0</span>
+  </div>
+</footer>
+<script src="/assets/site.js"></script>
+</body>
+</html>

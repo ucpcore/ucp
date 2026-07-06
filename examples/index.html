@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Examples · UCP</title>
+<meta name="description" content="Sample Universal Context Packages — minimal, Jira task, and forward-compatibility fixtures.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='SF Mono,Menlo,monospace' font-size='15' font-weight='700' fill='%234cc38a' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><span class="mark">{ }</span> UCP</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="/quickstart/">Quickstart</a>
+      <a href="/mcp/">MCP</a>
+      <a href="/spec/">Spec</a>
+      <a href="/examples/" class="active">Examples</a>
+      <a href="https://github.com/ucpcore/ucp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="doc-page">
+  <div class="wrap">
+    <h1>Examples</h1>
+    <p class="doc-lead">Validated sample packages from the
+    <a href="https://github.com/ucpcore/ucp">ucpcore/ucp</a> repository.
+    Use them to explore the data model, test consumers, or validate your parser.</p>
+
+    <div class="doc-card">
+      <h3><code>minimal.ucp.json</code></h3>
+      <p>Smallest valid <code>ucp-core</code> package — entity, generator, and a
+      single source entry. Good starting point for schema exploration.</p>
+      <div class="links">
+        <a href="/examples/data/minimal.ucp.json">View JSON</a>
+        <a href="https://github.com/ucpcore/ucp/blob/main/conformance/valid/minimal.ucp.json">GitHub</a>
+      </div>
+      <pre class="json-preview" aria-label="Preview of minimal.ucp.json">{
+  "ucp_version": "0.1.0",
+  "id": "urn:uuid:00000000-0000-4000-8000-000000000001",
+  "generated_at": "2026-07-05T12:00:00Z",
+  "generator": { "name": "minimal-producer" },
+  "entity": {
+    "ref": { "system": "filesystem", "type": "file", "id": "/docs/readme.md" },
+    "title": "readme.md"
+  },
+  "sources": {
+    "src-1": { "system": "filesystem", "type": "file", "title": "readme.md" }
+  }
+}</pre>
+    </div>
+
+    <div class="doc-card">
+      <h3><code>jira-task.ucp.json</code></h3>
+      <p>Realistic Jira task with <code>must_know</code>, <code>decisions</code>,
+      <code>constraints</code>, audience access control, and temporal fields.
+      Demonstrates the full <code>ucp-core</code> + temporal + secure profiles.</p>
+      <div class="links">
+        <a href="/examples/data/jira-task.ucp.json">View JSON</a>
+        <a href="https://github.com/ucpcore/ucp/blob/main/examples/jira-task.ucp.json">GitHub</a>
+      </div>
+      <pre class="json-preview" aria-label="Preview of jira-task.ucp.json">{
+  "ucp_version": "0.1.0",
+  "profiles": ["ucp-core", "ucp-temporal", "ucp-secure"],
+  "entity": {
+    "ref": { "system": "jira", "type": "issue", "id": "PAY-482" },
+    "title": "Migrate payment webhooks to v2 API",
+    "status": "In Progress"
+  },
+  "summary": { "text": "Payment provider deprecates webhook API v1…" },
+  "must_know": [ … ],
+  "decisions": [ … ],
+  "sources": { … }
+}</pre>
+    </div>
+
+    <div class="doc-card">
+      <h3><code>unknown-fields-ignored.ucp.json</code></h3>
+      <p>Conformance fixture: producers and consumers MUST tolerate unknown
+      top-level and nested fields (SPEC §6). Tests forward compatibility.</p>
+      <div class="links">
+        <a href="/examples/data/unknown-fields-ignored.ucp.json">View JSON</a>
+        <a href="https://github.com/ucpcore/ucp/blob/main/conformance/valid/unknown-fields-ignored.ucp.json">GitHub</a>
+      </div>
+      <pre class="json-preview" aria-label="Preview of unknown-fields-ignored.ucp.json">{
+  "ucp_version": "0.1.0",
+  "entity": { "ref": { "system": "jira", "type": "issue", "id": "X-1" }, … },
+  "some_future_field": { "introduced_in": "2.0.0" },
+  "must_know": [
+    { "id": "mk-1", "text": "Consumers must ignore fields they do not understand.",
+      "sources": ["s"], "future_claim_field": true }
+  ]
+}</pre>
+    </div>
+
+    <h2>Generate from a live issue</h2>
+    <p>Examples above are static fixtures. To build a package from a real GitHub
+    issue or Jira ticket:</p>
+    <div class="cmd"><code>ucp-gen github pallets/flask#5961 -o task.ucp.json
+# or via the server:
+curl -s -X POST http://localhost:8080/v1/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"source": "github", "ref": "pallets/flask#5961"}'</code><button class="copy" data-copy="ucp-gen github pallets/flask#5961 -o task.ucp.json" aria-label="Copy generate command"></button></div>
+
+    <h2>Validate a package</h2>
+    <div class="cmd"><code>pip install pyucp
+python -c "import ucp; ucp.load('task.ucp.json'); print('valid')"</code><button class="copy" data-copy="pip install pyucp&#10;python -c &quot;import ucp; ucp.load('task.ucp.json'); print('valid')&quot;" aria-label="Copy validate command"></button></div>
+    <p>Schema: <a href="https://github.com/ucpcore/ucp/blob/main/schema/ucp.schema.json">schema/ucp.schema.json</a> ·
+    More fixtures: <a href="https://github.com/ucpcore/ucp/tree/main/conformance">conformance/</a></p>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="/">Home</a>
+    <a href="/quickstart/">Quickstart</a>
+    <a href="/mcp/">MCP</a>
+    <a href="/spec/">Spec</a>
+    <a href="https://github.com/ucpcore/ucp/tree/main/examples">Repo examples</a>
+    <span class="lic">v0.1.0-draft · Apache-2.0</span>
+  </div>
+</footer>
+<script src="/assets/site.js"></script>
+</body>
+</html>

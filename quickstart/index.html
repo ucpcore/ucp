@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quickstart · UCP</title>
+<meta name="description" content="Run ucp-server, generate your first package, connect Cursor with MCP and the /ucp command.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='SF Mono,Menlo,monospace' font-size='15' font-weight='700' fill='%234cc38a' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><span class="mark">{ }</span> UCP</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="/quickstart/" class="active">Quickstart</a>
+      <a href="/mcp/">MCP</a>
+      <a href="/spec/">Spec</a>
+      <a href="/examples/">Examples</a>
+      <a href="https://github.com/ucpcore/ucp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="doc-page">
+  <div class="wrap">
+    <h1>Quickstart</h1>
+    <p class="doc-lead">From zero to a loaded task context in Cursor in under five minutes.
+    One self-hosted server handles generation, caching, REST, and MCP.</p>
+
+    <h2>1. Start the server</h2>
+    <p>Pick Docker or <code>uvx</code>. The server listens on port 8080 and exposes
+    REST at <code>/v1</code> and MCP at <code>/mcp</code>.</p>
+
+    <div class="tabs">
+      <div class="tablist" role="tablist" aria-label="Install methods">
+        <button class="tab" role="tab" id="tab-docker" aria-controls="panel-docker" aria-selected="true">Docker</button>
+        <button class="tab" role="tab" id="tab-uvx" aria-controls="panel-uvx" aria-selected="false" tabindex="-1">uvx</button>
+      </div>
+      <div class="panel" id="panel-docker" role="tabpanel" aria-labelledby="tab-docker">
+        <div class="cmd"><code>docker run --rm -p 8080:8080 -e GITHUB_TOKEN=ghp_yourtoken \
+  ghcr.io/ucpcore/ucp-server:latest</code><button class="copy" data-copy="docker run --rm -p 8080:8080 -e GITHUB_TOKEN=ghp_yourtoken ghcr.io/ucpcore/ucp-server:latest" aria-label="Copy Docker command"></button></div>
+      </div>
+      <div class="panel" id="panel-uvx" role="tabpanel" aria-labelledby="tab-uvx" hidden>
+        <div class="cmd"><code>uvx --from ucpcore-server ucp-server</code><button class="copy" data-copy="uvx --from ucpcore-server ucp-server" aria-label="Copy uvx command"></button></div>
+      </div>
+    </div>
+    <p>Public GitHub issues work without a token (lower rate limit). For Jira,
+    set <code>JIRA_BASE_URL</code>, <code>JIRA_EMAIL</code>, and <code>JIRA_API_TOKEN</code>
+    on the server — see <a href="/mcp/">MCP reference</a>.</p>
+
+    <h2>2. Generate a package (optional check)</h2>
+    <p>Verify the server with <code>curl</code> or use the CLI directly:</p>
+    <div class="cmd"><code>curl -s -X POST http://localhost:8080/v1/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"source": "github", "ref": "pallets/flask#5961"}' | head</code><button class="copy" data-copy='curl -s -X POST http://localhost:8080/v1/generate -H "Content-Type: application/json" -d "{\"source\": \"github\", \"ref\": \"pallets/flask#5961\"}" | head' aria-label="Copy curl command"></button></div>
+    <p style="margin-top:14px">Without the server — CLI only:</p>
+    <div class="cmd"><code>pip install ucp-gen
+ucp-gen github pallets/flask#5961 -o task.ucp.json</code><button class="copy" data-copy="pip install ucp-gen&#10;ucp-gen github pallets/flask#5961 -o task.ucp.json" aria-label="Copy CLI commands"></button></div>
+
+    <h2>3. Connect Cursor</h2>
+    <p>Add the MCP server to your Cursor config (<code>mcp.json</code>):</p>
+    <div class="cmd"><code>{
+  "mcpServers": {
+    "ucp": { "url": "http://localhost:8080/mcp" }
+  }
+}</code><button class="copy" data-copy='{
+  "mcpServers": {
+    "ucp": { "url": "http://localhost:8080/mcp" }
+  }
+}' aria-label="Copy mcp.json snippet"></button></div>
+    <p>If the server runs with <code>UCP_SERVER_API_KEY</code>, add a Bearer header —
+    details on the <a href="/mcp/">MCP page</a>.</p>
+
+    <h2>4. Add the <code>/ucp</code> command</h2>
+    <p>Copy the ready-made command file into your project:</p>
+    <div class="cmd"><code>mkdir -p .cursor/commands
+curl -sL https://raw.githubusercontent.com/ucpcore/ucp/main/libs/server/clients/cursor/ucp.md \
+  -o .cursor/commands/ucp.md</code><button class="copy" data-copy="mkdir -p .cursor/commands&#10;curl -sL https://raw.githubusercontent.com/ucpcore/ucp/main/libs/server/clients/cursor/ucp.md -o .cursor/commands/ucp.md" aria-label="Copy command setup"></button></div>
+    <p>Then in chat:</p>
+    <div class="cmd"><code>/ucp pallets/flask#5961</code><button class="copy" data-copy="/ucp pallets/flask#5961" aria-label="Copy ucp command"></button></div>
+    <p>The agent calls <code>generate_context</code>, loads the package, and treats
+    <code>summary</code>, <code>must_know</code>, <code>decisions</code>, and
+    <code>conflicts</code> as authoritative task context.</p>
+
+    <h2>5. LLM enrichment (optional)</h2>
+    <p>By default generation is structural only — fast and deterministic. Add semantic
+    synthesis with any OpenAI-compatible endpoint configured on the server
+    (<code>UCP_LLM_*</code> env vars), then:</p>
+    <div class="cmd"><code>curl -s -X POST http://localhost:8080/v1/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"source": "github", "ref": "microsoft/vscode#519", "llm": true}'</code><button class="copy" data-copy='curl -s -X POST http://localhost:8080/v1/generate -H "Content-Type: application/json" -d "{\"source\": \"github\", \"ref\": \"microsoft/vscode#519\", \"llm\": true}"' aria-label="Copy LLM curl"></button></div>
+
+    <div class="callout">
+      <p><strong>Next:</strong> full tool reference and environment variables on
+      <a href="/mcp/">/mcp</a> · package structure on <a href="/spec/">/spec</a> ·
+      sample JSON on <a href="/examples/">/examples</a>.</p>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="/">Home</a>
+    <a href="/mcp/">MCP</a>
+    <a href="/spec/">Spec</a>
+    <a href="/examples/">Examples</a>
+    <a href="https://github.com/ucpcore/ucp/tree/main/libs/server">Server docs</a>
+    <span class="lic">v0.1.0-draft · Apache-2.0</span>
+  </div>
+</footer>
+<script src="/assets/site.js"></script>
+</body>
+</html>
