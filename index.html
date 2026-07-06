@@ -106,7 +106,7 @@
         </div>
         <div class="term" role="img" aria-label="ucp-gen CLI session: generating a package from pallets/flask issue 5961">
           <div class="term-head"><span>ucp-gen</span><span>zsh</span></div>
-          <div class="term-body"><span class="ln"><span class="dim">$</span> <span class="hl">ucp-gen github pallets/flask#5961 -o task.ucp.json</span></span><span class="ln"><span class="ok">✓</span> pallets/flask#5961 — issue + 4 comments + 1 linked PRs</span><span class="ln"><span class="ok">✓</span> valid ucp-core package — 6 sources, sha256-hashed</span><span class="ln">📦 wrote task.ucp.json</span><span class="ln"><span class="dim">├──</span> Flask 3.1.3 test breaks after Werkzeug update…</span><span class="ln"><span class="dim">├──</span> claims      <span class="num">7</span> must-know</span><span class="ln"><span class="dim">├──</span> decisions   <span class="num">1</span> (1 accepted)</span><span class="ln"><span class="dim">├──</span> sources     <span class="num">6</span></span><span class="ln"><span class="dim">└──</span> tokens      <span class="num">~713</span> rendered</span><span class="ln"><span class="dim">$</span></span></div>
+          <div class="term-body"><span class="ln"><span class="dim">$</span> <span class="hl">ucp-gen github pallets/flask#5961 -o task.ucp.json</span></span><span class="ln"><span class="ok">✓</span> pallets/flask#5961 — issue + 4 comments + 1 linked PRs</span><span class="ln"><span class="ok">✓</span> valid ucp-core package — 6 sources, sha256-hashed</span><span class="ln">📦 wrote task.ucp.json</span><span class="ln"><span class="dim">├──</span> Flask 3.1.3 test breaks after Werkzeug update…</span><span class="ln"><span class="dim">├──</span> claims      <span class="num">7</span> must-know</span><span class="ln"><span class="dim">├──</span> decisions   <span class="num">1</span> (1 accepted)</span><span class="ln"><span class="dim">├──</span> coverage    <span class="num">truncated=false</span></span><span class="ln"><span class="dim">├──</span> sources     <span class="num">6</span></span><span class="ln"><span class="dim">└──</span> tokens      <span class="num">~713</span> rendered</span><span class="ln"><span class="dim">$</span></span></div>
         </div>
       </div>
     </div>
@@ -174,7 +174,7 @@
       issues the token count is similar, but the package is still structured, hashed
       and audience-aware. Reproduce with
       <a href="https://github.com/ucpcore/ucp/blob/main/tools/benchmark_context.py">tools/benchmark_context.py</a>;
-      generated with ucp-gen 0.1.1, 2026-07-05.</p>
+      generated with ucp-gen 0.3.1, 2026-07-06.</p>
 
       <div class="llm-block">
         <div>
@@ -211,6 +211,8 @@
   <span class="k">"must_know"</span><span class="b">: [ … ],</span>   <span class="cm">// facts, each with a salience score</span>
   <span class="k">"decisions"</span><span class="b">: [ … ],</span>   <span class="cm">// what was decided, when, with status</span>
   <span class="k">"conflicts"</span><span class="b">: [ … ],</span>   <span class="cm">// contradictions, kept visible instead of merged</span>
+  <span class="k">"context_diff"</span><span class="b">: { … },</span> <span class="cm">// what changed since your last visit</span>
+  <span class="k">"coverage"</span><span class="b">:   { … },</span>   <span class="cm">// truncated honesty on partial fetch</span>
   <span class="k">"sources"</span><span class="b">:   { … }</span>    <span class="cm">// every claim cites sources; each sha256-hashed</span>
 <span class="b">}</span></div>
       <p class="schema-note">A canonical rendering algorithm turns any package into
