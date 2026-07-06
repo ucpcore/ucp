@@ -110,6 +110,9 @@ export const ucpSchema = {
     "context_diff": {
       "$ref": "#/$defs/ContextDiff"
     },
+    "coverage": {
+      "$ref": "#/$defs/Coverage"
+    },
     "history": {
       "type": "array",
       "items": {
@@ -384,6 +387,78 @@ export const ucpSchema = {
             "medium",
             "high"
           ]
+        }
+      }
+    },
+    "Coverage": {
+      "type": "object",
+      "required": [
+        "truncated",
+        "sources_considered",
+        "sources_included"
+      ],
+      "properties": {
+        "truncated": {
+          "type": "boolean",
+          "description": "True when material was available but not fully retrieved or represented."
+        },
+        "sources_considered": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Approximate count of upstream artifacts the producer examined or knew about."
+        },
+        "sources_included": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of entries in the sources registry after assembly."
+        },
+        "streams": {
+          "type": "array",
+          "description": "Per-stream breakdown (comments, timeline, attachments, …).",
+          "items": {
+            "$ref": "#/$defs/CoverageStream"
+          }
+        }
+      }
+    },
+    "CoverageStream": {
+      "type": "object",
+      "required": [
+        "kind",
+        "retrieved"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "Open vocabulary: comments, timeline, attachments, changelog, …"
+        },
+        "available": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Known total from upstream metadata; null when unknown."
+        },
+        "retrieved": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "represented": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "How many items appear as claims or cited sources in the package."
+        },
+        "fetch_limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Hard cap applied during retrieval, if any."
         }
       }
     },

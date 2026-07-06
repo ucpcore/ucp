@@ -11,6 +11,7 @@ from typing import Any, Optional
 import httpx
 
 API = "https://api.github.com"
+FETCH_LIMIT = 200
 
 
 class GitHubError(RuntimeError):
@@ -39,7 +40,7 @@ def _get_json(client: httpx.Client, url: str, **params: Any) -> Any:
     return resp.json()
 
 
-def _paginate(client: httpx.Client, url: str, limit: int = 200) -> list[dict]:
+def _paginate(client: httpx.Client, url: str, limit: int = FETCH_LIMIT) -> list[dict]:
     items: list[dict] = []
     page = 1
     while len(items) < limit:
@@ -93,4 +94,8 @@ def fetch_issue_bundle(
         "comments": comments,
         "timeline": timeline,
         "linked_pulls": linked_pulls,
+        "fetch_meta": {
+            "comments_limit": FETCH_LIMIT,
+            "timeline_limit": FETCH_LIMIT,
+        },
     }

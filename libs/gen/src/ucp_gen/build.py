@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 SPEC_VERSION = "0.1.0"
-GENERATOR = {"name": "ucp-gen", "version": "0.3.0", "url": "https://github.com/ucpcore/ucp"}
+GENERATOR = {"name": "ucp-gen", "version": "0.3.1", "url": "https://github.com/ucpcore/ucp"}
 
 # Comments matching these are surfaced as proposed decisions (cheap heuristic;
 # merged PRs are the reliable "accepted" signal).
@@ -24,6 +24,7 @@ _DECISION_RE = re.compile(
 _MAX_HISTORY = 20
 _MAX_COMMENT_CLAIMS = 10
 _EXCERPT_LEN = 280
+_DEFAULT_FETCH_LIMIT = 200
 
 
 def _hash(text: str) -> str:
@@ -69,6 +70,73 @@ def _first_paragraph(text: Optional[str], fallback: str) -> str:
 
 def _iso(value: Optional[str]) -> Optional[str]:
     return value or None
+
+
+def _dedupe_decisions(decisions: list[dict]) -> list[dict]:
+    """Drop proposed comment decisions when a merged PR decision exists."""
+    if not any(d.get("status") == "accepted" for d in decisions):
+        return decisions
+    return [d for d in decisions if d.get("status") != "proposed"]
+
+
+def _build_coverage(
+    bundle: dict[str, Any],
+    *,
+    comments_retrieved: int,
+    comments_represented: int,
+    timeline_retrieved: int,
+    timeline_represented: int,
+    sources_included: int,
+) -> dict[str, Any]:
+    """Honesty block for partial fetch / representation (RFC-0006 §3.1)."""
+    issue = bundle["issue"]
+    pulls = bundle.get("linked_pulls", [])
+    fetch_meta = bundle.get("fetch_meta") or {}
+    comments_limit = int(fetch_meta.get("comments_limit", _DEFAULT_FETCH_LIMIT))
+    timeline_limit = int(fetch_meta.get("timeline_limit", _DEFAULT_FETCH_LIMIT))
+
+    comments_available = issue.get("comments")
+    if comments_available is not None:
+        comments_available = int(comments_available)
+
+    comment_truncated = (
+        (comments_available is not None and comments_available > comments_retrieved)
+        or comments_retrieved >= comments_limit
+        or comments_represented < comments_retrieved
+    )
+    timeline_truncated = (
+        timeline_retrieved >= timeline_limit
+        or timeline_represented < timeline_retrieved
+    )
+    truncated = comment_truncated or timeline_truncated
+
+    streams: list[dict[str, Any]] = [
+        {
+            "kind": "comments",
+            "available": comments_available,
+            "retrieved": comments_retrieved,
+            "represented": comments_represented,
+            "fetch_limit": comments_limit,
+        },
+        {
+            "kind": "timeline",
+            "available": None,
+            "retrieved": timeline_retrieved,
+            "represented": timeline_represented,
+            "fetch_limit": timeline_limit,
+        },
+    ]
+
+    considered = comments_retrieved + timeline_retrieved + 1 + len(pulls)
+    if comments_available is not None:
+        considered = comments_available + timeline_retrieved + 1 + len(pulls)
+
+    return {
+        "truncated": truncated,
+        "sources_considered": considered,
+        "sources_included": sources_included,
+        "streams": streams,
+    }
 
 
 def build_package(
@@ -209,6 +277,7 @@ def build_package(
                 "decided_by": _actor(comment.get("user")),
                 "decided_at": _iso(comment.get("created_at")),
             })
+    decisions = _dedupe_decisions(decisions)
 
     # --- history + context_diff from the timeline ------------------------------
     history: list[dict] = [{
@@ -265,6 +334,9 @@ def build_package(
 
     history.sort(key=lambda e: e["occurred_at"])
     history = history[-_MAX_HISTORY:]
+    timeline_represented = sum(
+        1 for event in history if not event["summary"].startswith("Issue opened by")
+    )
 
     # --- related objects --------------------------------------------------------
     related = [{
@@ -283,6 +355,18 @@ def build_package(
         for item in section:
             referenced.update(item["sources"])
     sources = {key: value for key, value in sources.items() if key in referenced}
+
+    comments_represented = sum(
+        1 for c in must_know if c["id"].startswith("comment-") and c["id"].endswith("-gist")
+    )
+    coverage = _build_coverage(
+        bundle,
+        comments_retrieved=len(comments),
+        comments_represented=comments_represented,
+        timeline_retrieved=len(timeline),
+        timeline_represented=timeline_represented,
+        sources_included=len(sources),
+    )
 
     profiles = ["ucp-core"]
     package: dict[str, Any] = {
@@ -307,6 +391,7 @@ def build_package(
         "history": history,
         "related_objects": related,
         "sources": sources,
+        "coverage": coverage,
     }
     if since:
         profiles.append("ucp-temporal")

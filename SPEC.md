@@ -272,6 +272,44 @@ An empty `changes` array is meaningful: "nothing changed" is information.
 `Event`: `{ "occurred_at": timestamp, "summary": string, "actor": Actor?,
 "sources": string[]? }`
 
+### 4.11. Coverage
+
+Honesty block for partial retrieval. Producers **MUST** set `truncated: true` when
+upstream material was available but not fully fetched or not represented in
+claims (for example, a 596-comment thread where only the 200 most recent
+comments were retrieved and 10 surfaced in `must_know`).
+
+```json
+{
+  "truncated": true,
+  "sources_considered": 598,
+  "sources_included": 12,
+  "streams": [
+    {
+      "kind": "comments",
+      "available": 596,
+      "retrieved": 200,
+      "represented": 10,
+      "fetch_limit": 200
+    }
+  ]
+}
+```
+
+| Field | Type | Req |
+|---|---|---|
+| `truncated` | boolean | MUST |
+| `sources_considered` | integer | MUST — approximate upstream artifact count |
+| `sources_included` | integer | MUST — entries in `sources` after assembly |
+| `streams` | CoverageStream[] | MAY — per-stream detail |
+
+`CoverageStream`: `{ "kind": string, "available": integer?, "retrieved": integer,
+"represented": integer?, "fetch_limit": integer? }`
+
+Producers **SHOULD** drop `proposed` decisions from comments when an `accepted`
+decision from a merged pull request supersedes them (the PR is the authoritative
+signal).
+
 ## 5. Conformance profiles
 
 Producers declare profiles in `profiles`. Each profile adds requirements:

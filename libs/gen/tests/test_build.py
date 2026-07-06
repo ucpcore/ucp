@@ -50,11 +50,50 @@ def test_merged_pr_becomes_accepted_decision():
 
 
 def test_decision_marker_in_comment_becomes_proposed_decision():
-    pkg = ucp.Package.model_validate(build())
+    bundle = copy.deepcopy(BUNDLE)
+    bundle["linked_pulls"] = []  # no merged PR — proposed decision should survive
+    pkg = ucp.Package.model_validate(build_package(bundle, now=NOW))
     proposed = [d for d in pkg.decisions if d.status == "proposed"]
     assert len(proposed) == 1
     assert "at-least-once delivery" in proposed[0].decision
     assert proposed[0].sources == ["comment-101"]
+
+
+def test_merged_pr_supersedes_proposed_comment_decision():
+    pkg = ucp.Package.model_validate(build())
+    proposed = [d for d in pkg.decisions if d.status == "proposed"]
+    assert proposed == []
+    accepted = [d for d in pkg.decisions if d.status == "accepted"]
+    assert len(accepted) == 1
+
+
+def test_coverage_not_truncated_on_small_issue():
+    data = build()
+    ucp.validate(data)
+    cov = data["coverage"]
+    assert cov["truncated"] is False
+    assert cov["sources_included"] == len(data["sources"])
+    comments = next(s for s in cov["streams"] if s["kind"] == "comments")
+    assert comments["retrieved"] == 2
+    assert comments["represented"] == 2
+    timeline = next(s for s in cov["streams"] if s["kind"] == "timeline")
+    assert timeline["retrieved"] == len(BUNDLE["timeline"])
+    assert timeline["represented"] == len(BUNDLE["timeline"])
+
+
+def test_coverage_truncated_when_comments_exceed_fetch():
+    bundle = copy.deepcopy(BUNDLE)
+    bundle["issue"]["comments"] = 596
+    bundle["fetch_meta"] = {"comments_limit": 200, "timeline_limit": 200}
+    data = build_package(bundle, now=NOW)
+    ucp.validate(data)
+    cov = data["coverage"]
+    assert cov["truncated"] is True
+    assert cov["sources_considered"] >= 596
+    comments = next(s for s in cov["streams"] if s["kind"] == "comments")
+    assert comments["available"] == 596
+    assert comments["retrieved"] == 2
+    assert comments["fetch_limit"] == 200
 
 
 def test_every_source_carries_content_hash():

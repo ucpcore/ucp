@@ -147,6 +147,21 @@ class Budget(_UCPModel):
     token_estimate: Optional[int] = Field(default=None, ge=0)
 
 
+class CoverageStream(_UCPModel):
+    kind: str
+    available: Optional[int] = Field(default=None, ge=0)
+    retrieved: int = Field(ge=0)
+    represented: Optional[int] = Field(default=None, ge=0)
+    fetch_limit: Optional[int] = Field(default=None, ge=0)
+
+
+class Coverage(_UCPModel):
+    truncated: bool
+    sources_considered: int = Field(ge=0)
+    sources_included: int = Field(ge=0)
+    streams: list[CoverageStream] = Field(default_factory=list)
+
+
 class Package(_UCPModel):
     ucp_version: str
     id: str
@@ -167,6 +182,7 @@ class Package(_UCPModel):
     decisions: list[Decision] = Field(default_factory=list)
     conflicts: list[Conflict] = Field(default_factory=list)
     context_diff: Optional[ContextDiff] = None
+    coverage: Optional[Coverage] = None
     history: list[Event] = Field(default_factory=list)
     dependencies: list[EntityRef] = Field(default_factory=list)
     related_objects: list[RelatedObject] = Field(default_factory=list)
