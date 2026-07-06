@@ -29,6 +29,7 @@ task.ucp.json
 ├── decisions      what was decided, when, with status
 ├── conflicts      contradictions, kept visible instead of merged
 ├── context_diff   what changed since your last visit
+├── coverage       honesty when fetch or representation is partial
 └── sources        every claim cites one; each sha256-hashed
 ```
 
@@ -89,7 +90,19 @@ The win grows with thread size — a decade-long discussion collapses ~15×
 while keeping decisions, conflicts and provenance. On small issues the
 token count is similar, but the package is still structured, hashed and
 audience-aware instead of being a wall of text. Generated with `ucp-gen`
-0.1.1, 2026-07-05.
+0.3.1, 2026-07-06.
+
+## Coverage (partial threads)
+
+On large threads the producer may fetch only the most recent comments or cap
+timeline events. The optional `coverage` block declares that honestly —
+`truncated: true`, counts of sources considered vs included, and per-stream
+detail (`comments`, `timeline`, fetch limits). See [SPEC.md §4.11](./SPEC.md).
+
+On `microsoft/vscode#519` (596 comments, 200 retrieved, 10 in `must_know`):
+`coverage.truncated` is `true` and `streams` shows `available: 596`.
+On small issues like `pallets/flask#5961` (4/4 comments represented),
+`truncated` is `false`.
 
 ## What `--llm` adds
 
@@ -287,7 +300,7 @@ the standard is open, the craft is the market.
 | Profile | Guarantees |
 |---|---|
 | `ucp-core` | Valid structure, entity, summary, sources, provenance on every claim |
-| `ucp-temporal` | Validity windows, `context_diff`, `conflicts` populated when detected |
+| `ucp-temporal` | Validity windows, `context_diff`, `coverage` when partial, `conflicts` populated when detected |
 | `ucp-secure` | Audience declared, access control attested, audit reference present |
 
 A minimal producer can ship `ucp-core` only. See [SPEC.md §5](./SPEC.md).

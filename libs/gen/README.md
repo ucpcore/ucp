@@ -44,6 +44,18 @@ stderr — stdout stays pure JSON/Markdown, so piping is always safe:
 └── tokens      ~713 rendered
 ```
 
+## Coverage and decision dedup (0.3.1+)
+
+Every package includes a `coverage` block: whether material was truncated,
+how many upstream artifacts were considered vs included, and per-stream counts
+(comments retrieved vs represented, timeline fetch limits). On mega-threads
+like `microsoft/vscode#519` you get `truncated: true` with `available: 596`
+even when only 200 comments were fetched.
+
+When a merged linked PR exists, **proposed** decisions extracted from comment
+phrases like "we decided …" are dropped — the merged PR is the authoritative
+accepted signal (SPEC §4.11).
+
 ## Optional LLM enhancement (`--llm`)
 
 Structure tells you *what happened*; it cannot tell you which of 200
@@ -83,9 +95,10 @@ of which exists in any structured GitHub field.
 | title / state / assignee | summary / status / assignee | `entity` |
 | first meaningful paragraph | first meaningful paragraph | `summary` |
 | state, milestone, labels, PR states, comment gists | status+resolution, priority, due date, fix versions, links, comment gists | `must_know` claims with salience |
-| merged linked PRs | resolution | `decisions` (accepted) |
-| "we decided" comments | "we decided" comments | `decisions` (proposed) |
+| merged linked PRs | resolution | `decisions` (accepted; supersedes proposed comment decisions) |
+| "we decided" comments | "we decided" comments | `decisions` (proposed, unless merged PR exists) |
 | issue timeline | changelog | `history`, and `context_diff` with `--since` |
+| fetch limits / comment counts | — | `coverage` (truncated honesty) |
 | — | "is blocked by" links | `dependencies` |
 | linked PRs | links, parent, subtasks | `related_objects` |
 | every cited issue / comment / PR | every cited ticket / comment | `sources` with URL + content hash |
