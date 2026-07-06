@@ -5,7 +5,7 @@ import ucp
 
 from ucp_gen import build_package
 
-from .fixtures import BUNDLE
+from .fixtures import BUNDLE, user
 
 NOW = datetime(2026, 7, 5, 12, 0, 0, tzinfo=timezone.utc)
 
@@ -81,7 +81,19 @@ def test_coverage_not_truncated_on_small_issue():
     assert timeline["represented"] == len(BUNDLE["timeline"])
 
 
-def test_coverage_truncated_when_comments_exceed_fetch():
+def test_coverage_not_truncated_when_timeline_has_unmapped_events():
+    bundle = copy.deepcopy(BUNDLE)
+    bundle["timeline"].append({
+        "event": "referenced",
+        "created_at": "2026-06-21T00:00:00Z",
+        "actor": user("bot"),
+    })
+    data = build_package(bundle, now=NOW)
+    ucp.validate(data)
+    assert data["coverage"]["truncated"] is False
+    timeline = next(s for s in data["coverage"]["streams"] if s["kind"] == "timeline")
+    assert timeline["retrieved"] == 6
+    assert timeline["represented"] == 5
     bundle = copy.deepcopy(BUNDLE)
     bundle["issue"]["comments"] = 596
     bundle["fetch_meta"] = {"comments_limit": 200, "timeline_limit": 200}

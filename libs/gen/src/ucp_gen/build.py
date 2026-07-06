@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 SPEC_VERSION = "0.1.0"
-GENERATOR = {"name": "ucp-gen", "version": "0.3.1", "url": "https://github.com/ucpcore/ucp"}
+GENERATOR = {"name": "ucp-gen", "version": "0.3.2", "url": "https://github.com/ucpcore/ucp"}
 
 # Comments matching these are surfaced as proposed decisions (cheap heuristic;
 # merged PRs are the reliable "accepted" signal).
@@ -86,6 +86,7 @@ def _build_coverage(
     comments_represented: int,
     timeline_retrieved: int,
     timeline_represented: int,
+    timeline_mappable: int,
     sources_included: int,
 ) -> dict[str, Any]:
     """Honesty block for partial fetch / representation (RFC-0006 §3.1)."""
@@ -106,7 +107,7 @@ def _build_coverage(
     )
     timeline_truncated = (
         timeline_retrieved >= timeline_limit
-        or timeline_represented < timeline_retrieved
+        or timeline_represented < timeline_mappable
     )
     truncated = comment_truncated or timeline_truncated
 
@@ -311,11 +312,13 @@ def build_package(
             return f"{actor_login} commented", "added"
         return None
 
+    timeline_mappable = 0
     for event in timeline:
         occurred = event.get("created_at") or event.get("submitted_at")
         described = timeline_summary(event)
         if not occurred or not described:
             continue
+        timeline_mappable += 1
         summary_text, change_type = described
         history.append({
             "occurred_at": occurred,
@@ -365,6 +368,7 @@ def build_package(
         comments_represented=comments_represented,
         timeline_retrieved=len(timeline),
         timeline_represented=timeline_represented,
+        timeline_mappable=timeline_mappable,
         sources_included=len(sources),
     )
 
