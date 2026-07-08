@@ -42,6 +42,17 @@ def document_index(monkeypatch):
 
 @pytest.fixture()
 def doc_client(tmp_path, document_index):
+    try:
+        import psycopg
+
+        with psycopg.connect(
+            "postgresql://contextos:contextos@127.0.0.1:5432/contextos",
+            connect_timeout=1,
+        ):
+            pass
+    except Exception:
+        pytest.skip("postgres not available (engine integration tests)")
+
     settings = make_settings(
         tmp_path,
         CONTEXTOS_ENGINE_ENABLED="1",
