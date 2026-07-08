@@ -96,6 +96,19 @@ class UserRow(Base):
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class WebhookEndpointRow(Base):
+    __tablename__ = "platform_webhook_endpoints"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(16), index=True)
+    source: Mapped[str] = mapped_column(String(16), index=True)
+    label: Mapped[str] = mapped_column(String(120))
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    signing_secret: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 

@@ -34,6 +34,7 @@ from .config import MAX_BODY_BYTES, Settings, load_settings
 from .mcp_tools import build_mcp
 from .receipt_models import ReceiptRequest
 from .receipt_store import get_receipt_store
+from .webhook_store import VALID_SOURCES, get_webhook_store
 from .service import GenerationService, InvalidRefError, PermissionError, SourceError
 
 from .errors import problem
@@ -109,6 +110,44 @@ class CreateInviteRequest(BaseModel):
         default_factory=lambda: list(DEFAULT_SCOPES)
     )
     ttl_hours: int = Field(default=168, ge=1, le=720)
+
+
+class MeCreateWebhookRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    source: Literal["github", "jira", "confluence"]
+    label: Optional[str] = Field(default=None, max_length=120)
+
+
+def _require_webhook_engine(settings: Settings) -> str:
+    if not settings.engine_enabled:
+        raise StarletteHTTPException(503, "engine is not enabled")
+    redis_url = settings.redis_url
+    if not redis_url:
+        raise StarletteHTTPException(503, "REDIS_URL is not configured")
+    return redis_url
+
+
+_WEBHOOK_SETUP_HINTS: dict[str, dict[str, Any]] = {
+    "github": {
+        "provider": "GitHub",
+        "events": ["Issues", "Issue comments"],
+        "secret_field": "Secret — paste signing_secret from create response",
+        "docs": "Settings → Webhooks → Add webhook",
+    },
+    "jira": {
+        "provider": "Jira",
+        "events": ["Issue created", "Issue updated", "Comment created"],
+        "secret_field": "Optional: header X-Webhook-Secret = signing_secret",
+        "docs": "Settings → System → WebHooks → Create webhook",
+    },
+    "confluence": {
+        "provider": "Confluence",
+        "events": ["Page created", "Page updated"],
+        "secret_field": "Optional: header X-Webhook-Secret = signing_secret",
+        "docs": "Space settings → Webhooks (or Confluence automation)",
+    },
+}
 
 
 def _require_user_auth(request: Request) -> AuthContext:
@@ -438,6 +477,122 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             raise StarletteHTTPException(503, str(exc)) from exc
         except json.JSONDecodeError as exc:
             raise StarletteHTTPException(400, "invalid JSON payload") from exc
+
+    @app.post("/v1/webhooks/jira", tags=["webhooks"])
+    async def jira_webhook(request: Request) -> dict[str, Any]:
+        redis_url = _require_webhook_engine(settings)
+        body = await request.body()
+        from .webhooks import handle_jira_webhook
+
+        try:
+            return handle_jira_webhook(
+                body=body,
+                secret=request.headers.get("X-Webhook-Secret"),
+                configured_secret=settings.jira_webhook_secret,
+                redis_url=redis_url,
+            )
+        except PermissionError as exc:
+            raise StarletteHTTPException(401, str(exc)) from exc
+        except json.JSONDecodeError as exc:
+            raise StarletteHTTPException(400, "invalid JSON payload") from exc
+
+    @app.post("/v1/webhooks/confluence", tags=["webhooks"])
+    async def confluence_webhook(request: Request) -> dict[str, Any]:
+        redis_url = _require_webhook_engine(settings)
+        body = await request.body()
+        from .webhooks import handle_confluence_webhook
+
+        try:
+            return handle_confluence_webhook(
+                body=body,
+                secret=request.headers.get("X-Webhook-Secret"),
+                configured_secret=settings.confluence_webhook_secret,
+                redis_url=redis_url,
+            )
+        except PermissionError as exc:
+            raise StarletteHTTPException(401, str(exc)) from exc
+        except json.JSONDecodeError as exc:
+            raise StarletteHTTPException(400, "invalid JSON payload") from exc
+
+    @app.post("/v1/webhooks/inbound/{source}/{url_token}", tags=["webhooks"])
+    async def inbound_webhook(source: str, url_token: str, request: Request) -> dict[str, Any]:
+        if source not in VALID_SOURCES:
+            raise StarletteHTTPException(404, f"unknown webhook source '{source}'")
+        redis_url = _require_webhook_engine(settings)
+        store = get_webhook_store(settings)
+        resolved = store.resolve(source, url_token)
+        if resolved is None:
+            raise StarletteHTTPException(401, "invalid or revoked webhook token")
+        _endpoint, signing_secret = resolved
+        body = await request.body()
+        from .webhooks import handle_inbound_webhook
+
+        try:
+            return handle_inbound_webhook(
+                source=source,
+                body=body,
+                signature=request.headers.get("X-Hub-Signature-256", ""),
+                signing_secret=signing_secret,
+                redis_url=redis_url,
+            )
+        except PermissionError as exc:
+            raise StarletteHTTPException(401, str(exc)) from exc
+        except ValueError as exc:
+            raise StarletteHTTPException(400, str(exc)) from exc
+        except json.JSONDecodeError as exc:
+            raise StarletteHTTPException(400, "invalid JSON payload") from exc
+
+    @app.get("/v1/me/webhooks", tags=["me"])
+    async def me_list_webhooks(request: Request) -> dict[str, Any]:
+        user_id, _ = _me_token_owner(request, settings)
+        if user_id is None:
+            raise StarletteHTTPException(
+                403, "webhook setup requires a portal account — sign in at /dashboard"
+            )
+        store = get_webhook_store(settings)
+        return {
+            "endpoints": store.list_for_user(user_id),
+            "sources": _WEBHOOK_SETUP_HINTS,
+            "env_fallback": {
+                "github": "/v1/webhooks/github (GITHUB_WEBHOOK_SECRET)",
+                "jira": "/v1/webhooks/jira (optional JIRA_WEBHOOK_SECRET)",
+                "confluence": "/v1/webhooks/confluence (optional CONFLUENCE_WEBHOOK_SECRET)",
+            },
+        }
+
+    @app.post("/v1/me/webhooks", tags=["me"])
+    async def me_create_webhook(
+        request: Request, body: MeCreateWebhookRequest
+    ) -> dict[str, Any]:
+        user_id, _ = _me_token_owner(request, settings)
+        if user_id is None:
+            raise StarletteHTTPException(403, "webhook setup requires a portal account")
+        store = get_webhook_store(settings)
+        try:
+            created = store.create(
+                user_id=user_id, source=body.source, label=body.label
+            )
+        except ValueError as exc:
+            raise StarletteHTTPException(400, str(exc)) from exc
+        hint = _WEBHOOK_SETUP_HINTS.get(body.source, {})
+        return {
+            "endpoint": created.endpoint.to_public(
+                inbound_url_hint=created.inbound_url,
+            ),
+            "inbound_url": created.inbound_url,
+            "signing_secret": created.signing_secret,
+            "setup": hint,
+            "note": "Save inbound_url and signing_secret now — the URL token cannot be retrieved again.",
+        }
+
+    @app.delete("/v1/me/webhooks/{endpoint_id}", tags=["me"])
+    async def me_revoke_webhook(request: Request, endpoint_id: str) -> dict[str, str]:
+        user_id, _ = _me_token_owner(request, settings)
+        if user_id is None:
+            raise StarletteHTTPException(403, "webhook setup requires a portal account")
+        if not get_webhook_store(settings).revoke(endpoint_id, user_id=user_id):
+            raise StarletteHTTPException(404, "webhook endpoint not found")
+        return {"status": "revoked", "id": endpoint_id}
 
     # --- Billing stub (Stripe emulation, RFC-0009) -----------------------------
     @app.get("/v1/billing/plans", tags=["billing"])

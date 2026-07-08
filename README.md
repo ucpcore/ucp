@@ -30,7 +30,8 @@ task.ucp.json
 ├── conflicts      contradictions, kept visible instead of merged
 ├── context_diff   what changed since your last visit
 ├── coverage       honesty when fetch or representation is partial
-└── sources        every claim cites one; each sha256-hashed
+├── sources        every claim cites one; each sha256-hashed
+└── usage receipt  optional feedback loop (§4.12) — cited / ignored claim ids
 ```
 
 ## Try it in 30 seconds
@@ -226,6 +227,35 @@ content hashes. An AI summary you can audit is an AI summary you can trust.
 **Access safety.** A package declares who it was assembled for and attests
 that every source passed an access-control check.
 
+## Usage Receipts — packages that learn
+
+UCP is not only producer → consumer. After an agent works with a package, it
+can submit a **Usage Receipt** — a separate JSON object (schema:
+[`usage-receipt.schema.json`](./schema/usage-receipt.schema.json), SPEC §4.12)
+that references the package by `package_id` and records:
+
+- **`claims_cited`** — claim ids the agent actually used
+- **`claims_ignored`** — claim ids that were noise for this task
+- **`gaps_needed`** — what was missing from the package
+- **`outcome`** — `task_completed`, `escalated`, `failed`, or `abandoned`
+
+Receipts contain **claim ids only**, not claim text — privacy-safe by design.
+Packages with the `ucp-verified` profile expect a receipt after meaningful
+interaction.
+
+The reference server accepts receipts via **`POST /v1/receipt`** (Bearer
+token with `receipt` scope) and the MCP tool **`submit_usage_receipt`**.
+Aggregated signals feed **warm ranking**: frequently cited claims gain salience
+on the next package for your team; ignored claims drop. See
+[ucpcore.org](https://ucpcore.org/#receipt) for the loop diagram.
+
+```bash
+curl -s -X POST http://localhost:8080/v1/receipt \
+  -H "Authorization: Bearer ctx_…" \
+  -H "Content-Type: application/json" \
+  -d @examples/sidebar-receipt.receipt.json
+```
+
 ## Integrations
 
 **MCP (Cursor, Claude Code, any MCP-capable agent).** The self-hosted server
@@ -239,8 +269,9 @@ speaks Streamable HTTP; add it to `mcp.json`:
 }
 ```
 
-The agent gets `generate_context`, `list_contexts`, `get_context` and
-`get_context_markdown`, plus `ucp_context` / `ucp_catchup` MCP prompts —
+The agent gets `generate_context`, `list_contexts`, `get_context`,
+`get_context_markdown`, and `submit_usage_receipt`, plus `ucp_context` /
+`ucp_catchup` MCP prompts —
 in Claude Code they show up as `/mcp__ucp__ucp_context` slash commands.
 Ready-made `/ucp` command files for Cursor and Claude Code live in
 [`libs/server/clients`](./libs/server/clients/). For file-based workflows,
@@ -303,6 +334,7 @@ the standard is open, the craft is the market.
 | `ucp-core` | Valid structure, entity, summary, sources, provenance on every claim |
 | `ucp-temporal` | Validity windows, `context_diff`, `coverage` when partial, `conflicts` populated when detected |
 | `ucp-secure` | Audience declared, access control attested, audit reference present |
+| `ucp-verified` | Consumer SHOULD submit a Usage Receipt (§4.12) after meaningful interaction |
 
 A minimal producer can ship `ucp-core` only. See [SPEC.md §5](./SPEC.md).
 

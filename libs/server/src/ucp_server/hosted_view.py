@@ -181,7 +181,7 @@ def render_hosted_landing(*, tenant_slug: str, public_base_url: str, version: st
 <body>
   <p class="badge">Hosted pilot · v{version}</p>
   <h1>Context OS MCP</h1>
-  <p class="meta">Tenant <code>{tenant_slug}</code> · dedicated stack (RFC-0009)</p>
+  <p class="meta">Tenant <code>{tenant_slug}</code> · dedicated hosted stack</p>
 
   <h2>MCP URL</h2>
   <pre id="mcp-url">{mcp_url}</pre>

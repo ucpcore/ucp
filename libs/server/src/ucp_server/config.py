@@ -81,6 +81,12 @@ class Settings(BaseSettings):
     github_webhook_secret: Optional[str] = Field(
         default=None, validation_alias="GITHUB_WEBHOOK_SECRET"
     )
+    jira_webhook_secret: Optional[str] = Field(
+        default=None, validation_alias="JIRA_WEBHOOK_SECRET"
+    )
+    confluence_webhook_secret: Optional[str] = Field(
+        default=None, validation_alias="CONFLUENCE_WEBHOOK_SECRET"
+    )
 
     github_oauth_client_id: Optional[str] = Field(
         default=None, validation_alias="GITHUB_OAUTH_CLIENT_ID"

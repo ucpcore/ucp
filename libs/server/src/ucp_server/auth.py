@@ -105,6 +105,12 @@ def is_public_path(method: str, path: str) -> bool:
         return True
     if method == "POST" and path == "/v1/webhooks/github":
         return True
+    if method == "POST" and path == "/v1/webhooks/jira":
+        return True
+    if method == "POST" and path == "/v1/webhooks/confluence":
+        return True
+    if method == "POST" and path.startswith("/v1/webhooks/inbound/"):
+        return True
     if method == "POST" and path == "/v1/billing/simulate-payment":
         return True
     if method == "POST" and path == "/v1/billing/checkout":
