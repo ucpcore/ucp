@@ -48,7 +48,7 @@ def test_handle_github_webhook_queues_task(monkeypatch):
         return "task-abc"
 
     monkeypatch.setattr(
-        "contextos_engine.admin.webhooks.trigger_github_issue_index",
+        "ucp_server.webhooks.queue_github_issue_index",
         fake_trigger,
     )
 

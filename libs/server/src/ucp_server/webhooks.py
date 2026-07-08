@@ -49,6 +49,15 @@ def parse_github_webhook(payload: dict[str, Any]) -> Optional[tuple[str, str, in
     return None
 
 
+def queue_github_issue_index(
+    owner: str, repo: str, number: int, *, redis_url: str
+) -> str:
+    """Enqueue single-issue re-index (Context OS engine when installed)."""
+    from contextos_engine.admin.webhooks import trigger_github_issue_index
+
+    return trigger_github_issue_index(owner, repo, number, redis_url=redis_url)
+
+
 def handle_github_webhook(
     *,
     body: bytes,
@@ -67,10 +76,8 @@ def handle_github_webhook(
         logger.debug("github webhook ignored: action=%s", payload.get("action"))
         return {"status": "ignored", "reason": "no indexable issue event"}
 
-    from contextos_engine.admin.webhooks import trigger_github_issue_index
-
     owner, repo, number = parsed
-    task_id = trigger_github_issue_index(owner, repo, number, redis_url=redis_url)
+    task_id = queue_github_issue_index(owner, repo, number, redis_url=redis_url)
     logger.info("github webhook queued index %s/%s#%d task=%s", owner, repo, number, task_id)
     return {
         "status": "queued",
