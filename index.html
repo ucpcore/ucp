@@ -12,7 +12,7 @@
 <meta property="og:site_name" content="ucpcore.org">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='SF Mono,Menlo,monospace' font-size='15' font-weight='700' fill='%234cc38a' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/site.css?v=3">
+<link rel="stylesheet" href="/assets/site.css?v=4">
 </head>
 <body>
 
@@ -140,13 +140,168 @@
         </div>
       </div>
       <p class="after-steps">Your agent now has <code>generate_context</code>,
-      <code>list_contexts</code>, <code>get_context</code> and
-      <code>get_context_markdown</code>. Ask it to load context for
+      <code>list_contexts</code>, <code>get_context</code>,
+      <code>get_context_markdown</code>, and <code>submit_usage_receipt</code>.
+      Ask it to load context for
       <code>owner/repo#123</code> or <code>PROJ-123</code>. Prefer plain HTTP?
-      The same server exposes <code>POST /v1/generate</code>.</p>
+      The same server exposes <code>POST /v1/generate</code> and
+      <code>POST /v1/receipt</code>.</p>
       <p class="after-steps">Deploying beyond localhost? Set
       <code>UCP_SERVER_API_KEY</code> and send it as a <code>Bearer</code>
       header — see the <a href="/mcp/">MCP reference</a>.</p>
+    </div>
+  </section>
+
+  <section id="receipt">
+    <div class="wrap reveal">
+      <h2>Close the loop with Usage Receipts</h2>
+      <p class="section-sub">Most context formats are one-way: producer ships a
+      package, the agent reads it, and nobody learns what actually helped.
+      UCP adds a <strong style="color:var(--fg);font-weight:600">Usage Receipt</strong>
+      — a small JSON object that records which claims were cited, which were
+      ignored, and how the task ended. The reference server uses that signal to
+      warm-rank the next package for your team.</p>
+
+      <div class="receipt-infographic reveal" role="img"
+        aria-label="Usage Receipt loop: generate package, agent cites or ignores claims, submit receipt, warm ranking adjusts salience, next package is sharper">
+        <div class="receipt-flow">
+          <div class="receipt-step">
+            <div class="receipt-step-icon accent" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+            </div>
+            <p class="receipt-step-num">Step 1</p>
+            <h3>Generate</h3>
+            <p>Server assembles a UCP with ranked <code style="color:var(--fg);font-size:.95em">must_know</code></p>
+          </div>
+          <div class="receipt-step">
+            <div class="receipt-step-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+            </div>
+            <p class="receipt-step-num">Step 2</p>
+            <h3>Agent works</h3>
+            <p>Cursor, Sidebar, or any MCP client uses cited claims</p>
+          </div>
+          <div class="receipt-step">
+            <div class="receipt-step-icon accent" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/></svg>
+            </div>
+            <p class="receipt-step-num">Step 3</p>
+            <h3>Submit receipt</h3>
+            <p>Claim ids only — no claim text, privacy-safe</p>
+          </div>
+          <div class="receipt-step">
+            <div class="receipt-step-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+            </div>
+            <p class="receipt-step-num">Step 4</p>
+            <h3>Warm rank</h3>
+            <p>Cited claims gain salience; noise drops</p>
+          </div>
+          <div class="receipt-step">
+            <div class="receipt-step-icon accent" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>
+            </div>
+            <p class="receipt-step-num">Step 5</p>
+            <h3>Next package</h3>
+            <p>Same task, sharper ordering for your team</p>
+          </div>
+        </div>
+
+        <div class="receipt-detail">
+          <div class="receipt-panel">
+            <div class="receipt-panel-head">
+              <span>Package · must_know</span>
+              <span class="tag">before receipt</span>
+            </div>
+            <div class="receipt-claims">
+              <div class="receipt-claim">
+                <span class="receipt-claim-id">mk-1</span>
+                <span class="receipt-claim-text">HMAC-SHA256 required for webhooks</span>
+                <span class="receipt-salience-val">.82</span>
+              </div>
+              <div class="receipt-claim">
+                <span class="receipt-claim-id">mk-2</span>
+                <span class="receipt-claim-text">Redis idempotency keys (team debate)</span>
+                <span class="receipt-salience-val">.71</span>
+              </div>
+              <div class="receipt-claim">
+                <span class="receipt-claim-id">mk-3</span>
+                <span class="receipt-claim-text">Legacy v1 keys sunset Aug 1</span>
+                <span class="receipt-salience-val">.65</span>
+              </div>
+            </div>
+            <div class="receipt-outcomes" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+              <div class="receipt-outcome-row">
+                <span class="pill cited">cited</span>
+                <span><code style="color:var(--fg)">mk-1</code>, <code style="color:var(--fg)">mk-3</code> — used in the fix</span>
+              </div>
+              <div class="receipt-outcome-row">
+                <span class="pill ignored">ignored</span>
+                <span><code style="color:var(--fg)">mk-2</code> — not relevant this sprint</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="receipt-panel">
+            <div class="receipt-panel-head">
+              <span>usage-receipt.json</span>
+              <span class="tag">§4.12</span>
+            </div>
+            <pre class="receipt-json" aria-label="Example Usage Receipt"><span class="b">{</span>
+  <span class="k">"receipt_version"</span>: <span class="s">"0.1.0"</span>,
+  <span class="k">"package_id"</span>: <span class="s">"urn:uuid:7f9c…"</span>,
+  <span class="k">"consumer"</span>: <span class="b">{</span> <span class="k">"type"</span>: <span class="s">"mcp"</span> <span class="b">}</span>,
+  <span class="k">"claims_cited"</span>: <span class="b">[</span><span class="s">"mk-1"</span>, <span class="s">"mk-3"</span><span class="b">]</span>,
+  <span class="k">"claims_ignored"</span>: <span class="b">[</span><span class="s">"mk-2"</span><span class="b">]</span>,
+  <span class="k">"gaps_needed"</span>: <span class="b">[</span><span class="s">"rate-limit docs"</span><span class="b">]</span>,
+  <span class="k">"outcome"</span>: <span class="s">"task_completed"</span>
+<span class="b">}</span></pre>
+          </div>
+
+          <div class="receipt-panel">
+            <div class="receipt-panel-head">
+              <span>Next package</span>
+              <span class="tag">warm ranking</span>
+            </div>
+            <div class="receipt-claims">
+              <div class="receipt-claim">
+                <span class="receipt-claim-id">mk-1</span>
+                <div class="receipt-salience-track"><div class="receipt-salience-bar" style="width:100%;transform:scaleX(.94)"></div></div>
+                <span class="receipt-salience-val up">.94</span>
+              </div>
+              <div class="receipt-claim">
+                <span class="receipt-claim-id">mk-3</span>
+                <div class="receipt-salience-track"><div class="receipt-salience-bar" style="width:100%;transform:scaleX(.88)"></div></div>
+                <span class="receipt-salience-val up">.88</span>
+              </div>
+              <div class="receipt-claim">
+                <span class="receipt-claim-id">mk-2</span>
+                <div class="receipt-salience-track"><div class="receipt-salience-bar" style="width:100%;transform:scaleX(.52);background:#5c6873"></div></div>
+                <span class="receipt-salience-val down">.52</span>
+              </div>
+            </div>
+            <div class="receipt-rank-delta">
+              <h4>Salience delta</h4>
+              <div class="receipt-rank-row">
+                <span class="id">mk-1</span>
+                <div class="receipt-salience-track"><div class="receipt-salience-bar" style="width:100%;transform:scaleX(.94)"></div></div>
+                <span class="arrow up">+12%</span>
+              </div>
+              <div class="receipt-rank-row">
+                <span class="id">mk-2</span>
+                <div class="receipt-salience-track"><div class="receipt-salience-bar" style="width:100%;transform:scaleX(.52);background:#5c6873"></div></div>
+                <span class="arrow down">−19%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="receipt-cta">
+          <span>MCP: <code>submit_usage_receipt</code> · REST: <code>POST /v1/receipt</code></span>
+          <a href="/examples/data/sidebar-receipt.receipt.json">Example receipt →</a>
+          <a href="/spec/">SPEC §4.12 →</a>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -213,7 +368,8 @@
   <span class="k">"conflicts"</span><span class="b">: [ … ],</span>   <span class="cm">// contradictions, kept visible instead of merged</span>
   <span class="k">"context_diff"</span><span class="b">: { … },</span> <span class="cm">// what changed since your last visit</span>
   <span class="k">"coverage"</span><span class="b">:   { … },</span>   <span class="cm">// truncated honesty on partial fetch</span>
-  <span class="k">"sources"</span><span class="b">:   { … }</span>    <span class="cm">// every claim cites sources; each sha256-hashed</span>
+  <span class="k">"sources"</span><span class="b">:   { … },</span>    <span class="cm">// every claim cites sources; each sha256-hashed</span>
+  <span class="k">"profiles"</span><span class="b">: [</span><span class="s">"ucp-core"</span>, <span class="s">"ucp-verified"</span><span class="b">]</span> <span class="cm">// expects a Usage Receipt (§4.12)</span>
 <span class="b">}</span></div>
       <p class="schema-note">A canonical rendering algorithm turns any package into
       a deterministic prompt. Under a token budget, <code>salience</code> defines
@@ -234,7 +390,7 @@
     <a href="https://pypi.org/project/ucp-mcp/">ucp-mcp</a>
     <a href="https://pypi.org/project/pyucp/">pyucp</a>
     <a href="https://www.npmjs.com/package/@ucpcore/core">npm: @ucpcore/core</a>
-    <span class="lic">v0.1.0-draft &middot; Apache-2.0</span>
+    <span class="lic">v0.1.1-draft · pyucp &amp; @ucpcore/core 0.1.2 · Apache-2.0</span>
   </div>
 </footer>
 

@@ -1,0 +1,15 @@
+{
+  "receipt_version": "0.1.0",
+  "package_id": "urn:uuid:7f9c2e14-8b3a-4c1d-9e2f-1a2b3c4d5e6f",
+  "package_generated_at": "2026-07-08T12:00:00Z",
+  "consumer": {
+    "type": "mcp",
+    "id": "cursor@1.0",
+    "session_id": "sess-9f3a2b1c"
+  },
+  "claims_cited": ["mk-1", "mk-3"],
+  "claims_ignored": ["mk-2"],
+  "gaps_needed": ["API rate limits not in package"],
+  "outcome": "task_completed",
+  "submitted_at": "2026-07-08T12:05:00Z"
+}

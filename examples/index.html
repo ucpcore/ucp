@@ -6,7 +6,7 @@
 <title>Examples · UCP</title>
 <meta name="description" content="Sample Universal Context Packages — minimal, Jira task, and forward-compatibility fixtures.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='SF Mono,Menlo,monospace' font-size='15' font-weight='700' fill='%234cc38a' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/site.css?v=3">
+<link rel="stylesheet" href="/assets/site.css?v=4">
 </head>
 <body>
 
@@ -78,6 +78,27 @@
     </div>
 
     <div class="doc-card">
+      <h3><code>sidebar-receipt.receipt.json</code></h3>
+      <p>Usage Receipt (SPEC §4.12) — feedback after an agent consumes a package.
+      Records <code>claims_cited</code>, <code>claims_ignored</code>,
+      <code>gaps_needed</code>, and <code>outcome</code> without embedding claim text.</p>
+      <div class="links">
+        <a href="/examples/data/sidebar-receipt.receipt.json">View JSON</a>
+        <a href="https://github.com/ucpcore/ucp/blob/main/examples/sidebar-receipt.receipt.json">GitHub</a>
+        <a href="/#receipt">Loop diagram →</a>
+      </div>
+      <pre class="json-preview" aria-label="Preview of sidebar-receipt.receipt.json">{
+  "receipt_version": "0.1.0",
+  "package_id": "urn:uuid:7f9c2e14-…",
+  "consumer": { "type": "mcp", "id": "cursor@1.0" },
+  "claims_cited": ["mk-1", "mk-3"],
+  "claims_ignored": ["mk-2"],
+  "gaps_needed": ["API rate limits not in package"],
+  "outcome": "task_completed"
+}</pre>
+    </div>
+
+    <div class="doc-card">
       <h3><code>unknown-fields-ignored.ucp.json</code></h3>
       <p>Conformance fixture: producers and consumers MUST tolerate unknown
       top-level and nested fields (SPEC §6). Tests forward compatibility.</p>
@@ -120,7 +141,7 @@ python -c "import ucp; ucp.load('task.ucp.json'); print('valid')"</code><button 
     <a href="/mcp/">MCP</a>
     <a href="/spec/">Spec</a>
     <a href="https://github.com/ucpcore/ucp/tree/main/examples">Repo examples</a>
-    <span class="lic">v0.1.0-draft · Apache-2.0</span>
+    <span class="lic">v0.1.1-draft · Apache-2.0</span>
   </div>
 </footer>
 <script src="/assets/site.js"></script>
