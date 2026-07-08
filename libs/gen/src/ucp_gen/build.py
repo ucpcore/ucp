@@ -198,7 +198,16 @@ def build_package(
     must_know: list[dict] = []
 
     def claim(cid: str, text: str, salience: float, srcs: list[str], **extra: Any) -> None:
-        must_know.append({"id": cid, "text": text, "salience": salience, "sources": srcs, **extra})
+        must_know.append(
+            {
+                "id": cid,
+                "text": text,
+                "salience": salience,
+                "salience_method": "producer",
+                "sources": srcs,
+                **extra,
+            }
+        )
 
     state = issue.get("state", "open")
     state_text = f"Issue is {state}"

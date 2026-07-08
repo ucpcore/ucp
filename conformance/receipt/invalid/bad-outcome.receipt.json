@@ -1,0 +1,9 @@
+{
+  "receipt_version": "0.1.0",
+  "package_id": "urn:uuid:example",
+  "package_generated_at": "2026-07-08T12:00:00Z",
+  "consumer": { "type": "mcp", "id": "cursor-mcp" },
+  "claims_cited": [],
+  "claims_ignored": [],
+  "outcome": "not_a_valid_outcome"
+}

@@ -1,6 +1,6 @@
 # Universal Context Package Specification
 
-- Version: **0.1.0-draft**
+- Version: **0.1.1**
 - Date: 2026-07-05
 - License: Apache 2.0
 - Schema: [`schema/ucp.schema.json`](./schema/ucp.schema.json)
@@ -164,11 +164,13 @@ The universal atom of UCP.
 | `text` | string | MUST | The statement, plain text or CommonMark. |
 | `kind` | string | MAY | Open vocabulary: `fact`, `instruction`, `warning`, `assumption`. |
 | `salience` | number 0..1 | SHOULD | Importance for THIS task. Drives truncation order (§7.2). |
+| `salience_method` | enum | SHOULD | How `salience` was assigned: `producer` \| `llm` \| `graph` \| `ranking` \| `default`. |
 | `confidence` | number 0..1 | MAY | Producer's confidence the claim is correct. |
 | `sources` | string[] | MUST | ≥ 1 key into the `sources` map. **A claim without provenance is invalid.** |
 | `asserted_at` | timestamp | MAY | When the underlying statement was made. |
 | `valid_from` | timestamp | MAY | Start of validity window. |
 | `valid_to` | timestamp \| null | MAY | End of validity; `null`/absent = currently valid. |
+| `supersedes` | string | MAY | id of an earlier claim this one replaces. |
 | `tags` | string[] | MAY | Free-form labels. |
 
 ### 4.5. Source
@@ -216,10 +218,37 @@ either side of a known contradiction; representing it is the point.
 | `id` | string | MUST |
 | `description` | string | MUST — what contradicts what |
 | `positions` | Position[] | MUST (≥ 2) |
-| `resolution_hint` | string | MAY — e.g. "src-2 is newer and authored by the project lead" |
+| `resolution_hint` | string \| object | MAY | Legacy string, or `{ "basis": "recency" \| "authority" \| "consensus" \| "manual", "note"?: string }` |
 | `severity` | enum | MAY — `low` \| `medium` \| `high` |
 
 `Position`: `{ "claim": string, "sources": string[], "asserted_at": timestamp? }`
+
+#### 4.7.1. Producer obligations for conflict detection
+
+Producers claiming profile `ucp-temporal` (or assembling from multiple
+sources) MUST detect and represent contradictions when **all** of the
+following hold:
+
+1. Two or more claims or source excerpts assert incompatible facts about
+   the same subject (status, owner, date, numeric value, or decision).
+2. Both sides are backed by distinct sources present in `sources`.
+3. Neither side is clearly superseded by a later `valid_to`, `supersedes`,
+   or an explicit status change in `history`.
+
+When detected, producers MUST:
+
+- Add a `Conflict` entry with ≥ 2 `positions`, each referencing claim text
+  or a paraphrase plus `sources`.
+- NOT merge contradictory claims into a single `must_know` entry.
+- NOT assign higher salience to one side without documenting the conflict.
+
+Producers MAY omit `conflicts` when sources are consistent, when only one
+side is permission-visible to the audience, or when contradiction is
+speculative (no supporting source on both sides).
+
+Heuristic examples (non-normative): Jira status «Done» vs open GitHub PR;
+Confluence spec date vs ticket comment; two decisions with overlapping scope
+and different outcomes.
 
 ### 4.8. ContextDiff
 
@@ -310,6 +339,34 @@ Producers **SHOULD** drop `proposed` decisions from comments when an `accepted`
 decision from a merged pull request supersedes them (the PR is the authoritative
 signal).
 
+### 4.12. Usage Receipt
+
+A **Usage Receipt** is a separate JSON object (not embedded in the package) that
+records how a consumer used a package. Receipts enable producers to calibrate
+ranking and measure context quality over time (RFC-0007).
+
+Schema: [`schema/usage-receipt.schema.json`](./schema/usage-receipt.schema.json)
+
+| Field | Type | Req | Description |
+|---|---|---|---|
+| `receipt_version` | string | MUST | Semver of the receipt protocol (currently `0.1.0`). |
+| `package_id` | string | MUST | `id` of the UCP package consumed. |
+| `package_generated_at` | timestamp | MUST | `generated_at` from that package (binding). |
+| `consumer` | object | MUST | `{ type, id, session_id? }` — `type`: `sidebar` \| `mcp` \| `cli` \| `agent`. |
+| `claims_cited` | string[] | MAY | Claim ids the consumer relied on (pin, open, cite). |
+| `claims_ignored` | string[] | MAY | Claim ids explicitly dismissed. |
+| `gaps_needed` | string[] | MAY | Free-text gaps (≤ 500 chars each, ≤ 10 items). |
+| `outcome` | enum | MUST | `task_completed` \| `escalated` \| `failed` \| `abandoned`. |
+| `submitted_at` | timestamp | SHOULD | When the receipt was sent. |
+| `audience` | string | MAY | Principal when receipt is audience-scoped. |
+
+Producers exposing `POST /v1/receipt` (or equivalent) MUST verify that
+`package_id` refers to a package they issued and SHOULD reject receipts whose
+`package_generated_at` does not match the cached package.
+
+Consumers MUST NOT include claim text in receipts — only claim ids — to limit
+privacy exposure.
+
 ## 5. Conformance profiles
 
 Producers declare profiles in `profiles`. Each profile adds requirements:
@@ -335,6 +392,21 @@ Producers declare profiles in `profiles`. Each profile adds requirements:
 - Every source was permission-checked for the principal at assembly time.
 - The package MUST NOT be served to any other principal.
 - `audit_ref` present.
+
+### 5.4. `ucp-verified` (includes `ucp-core`)
+
+Signals that the producer **expects** a Usage Receipt from the consumer during
+the work session:
+
+- Package `profiles` includes `ucp-verified`.
+- Consumer SHOULD submit a receipt (§4.12) after meaningful interaction
+  (panel close, task end, explicit submit).
+- Receipt submission is transport-specific; reference API: `POST /v1/receipt`
+  on ucp-server with the same Bearer auth used for generation.
+
+Warm ranking calibration from receipts is optional for 0.1.1; reference
+implementations MAY adjust claim salience from aggregated cited/ignored ids
+(RFC-0003 §3.2, Context OS `RANKING_WARM_ENABLED`).
 
 ## 6. Extensibility and versioning
 
@@ -406,7 +478,10 @@ via extensions.
    confidential. Permission checks apply to the source *entries*, not only to
    claim texts.
 4. **Integrity.** Consumers MAY verify `content_hash` against the origin to
-   detect tampering or drift.
+   detect tampering or drift. When a recomputed hash **does not match** the
+   value in the package, the consumer SHOULD treat claims citing that source as
+   **stale**, SHOULD re-fetch the origin (or request a fresh package), and MUST
+   NOT silently extend trust to those claims without refresh.
 5. **Prompt injection.** Claim texts originate from untrusted documents.
    Consumers SHOULD delimit rendered context from instructions and MUST NOT
    treat package content as system-level instructions.
@@ -430,4 +505,8 @@ those systems. A natural composition: an MCP server exposes a
 
 ## Changelog
 
+- **0.1.1** (2026-07-08) — `salience_method` on Claim; Claim `supersedes`;
+  structured `resolution_hint`; `maxItems` anti-inflate on claim arrays;
+  profile conformance in validator; `content_hash` consumer contract (§8);
+  Usage Receipt object (§4.12) + `ucp-verified` profile (§5.4).
 - **0.1.0-draft** (2026-07-05) — initial public draft.

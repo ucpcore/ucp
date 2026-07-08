@@ -7,7 +7,7 @@ must parse, with unknown fields preserved on the model instance.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -55,11 +55,20 @@ class Claim(_UCPModel):
     sources: list[str] = Field(min_length=1)
     kind: Optional[str] = None
     salience: Optional[float] = Field(default=None, ge=0, le=1)
+    salience_method: Optional[
+        Literal["producer", "llm", "graph", "ranking", "default"]
+    ] = None
     confidence: Optional[float] = Field(default=None, ge=0, le=1)
     asserted_at: Optional[datetime] = None
     valid_from: Optional[datetime] = None
     valid_to: Optional[datetime] = None
+    supersedes: Optional[str] = None
     tags: list[str] = Field(default_factory=list)
+
+
+class ResolutionHintObject(_UCPModel):
+    basis: Literal["recency", "authority", "consensus", "manual"]
+    note: Optional[str] = None
 
 
 class Decision(_UCPModel):
@@ -83,7 +92,7 @@ class Conflict(_UCPModel):
     id: str
     description: str
     positions: list[ConflictPosition] = Field(min_length=2)
-    resolution_hint: Optional[str] = None
+    resolution_hint: Optional[Union[str, ResolutionHintObject]] = None
     severity: Optional[Literal["low", "medium", "high"]] = None
 
 

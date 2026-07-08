@@ -2,6 +2,7 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormatsImport from "ajv-formats";
 
 import { ucpSchema } from "./schema.js";
+import { iterProfileErrors } from "./profiles.js";
 import type { UCPackage } from "./types.js";
 
 // CJS/ESM interop under NodeNext: at runtime the default import is the
@@ -26,7 +27,9 @@ export function schema(): Record<string, unknown> {
 
 /** Validate and return human-readable error messages (empty array = valid). */
 export function iterErrors(data: unknown): string[] {
-  if (validator(data)) return [];
+  if (validator(data)) {
+    return iterProfileErrors(data as UCPackage);
+  }
   return (validator.errors ?? []).map(
     (e) => `${e.instancePath || "<root>"}: ${e.message ?? "invalid"}`
   );

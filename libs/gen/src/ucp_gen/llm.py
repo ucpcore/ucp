@@ -16,6 +16,8 @@ Environment:
     UCP_LLM_BASE_URL  default https://api.openai.com/v1
     UCP_LLM_API_KEY   falls back to OPENAI_API_KEY
     UCP_LLM_MODEL     default gpt-4o-mini
+    OPENAI_API_BASE   alias for UCP_LLM_BASE_URL (engine .env convention)
+    OPENAI_API_KEY    alias for UCP_LLM_API_KEY
 """
 from __future__ import annotations
 
@@ -72,11 +74,22 @@ class LLMConfig:
         api_key: Optional[str] = None,
         model: Optional[str] = None,
     ) -> "LLMConfig":
+        resolved_base = (
+            base_url
+            or os.environ.get("UCP_LLM_BASE_URL")
+            or os.environ.get("OPENAI_API_BASE")
+            or "https://api.openai.com/v1"
+        )
+        resolved_key = (
+            api_key
+            or os.environ.get("UCP_LLM_API_KEY")
+            or os.environ.get("OPENAI_API_KEY")
+        )
+        resolved_model = model or os.environ.get("UCP_LLM_MODEL") or "gpt-4o-mini"
         return cls(
-            base_url=(base_url or os.environ.get("UCP_LLM_BASE_URL")
-                      or "https://api.openai.com/v1").rstrip("/"),
-            api_key=api_key or os.environ.get("UCP_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY"),
-            model=model or os.environ.get("UCP_LLM_MODEL") or "gpt-4o-mini",
+            base_url=resolved_base.rstrip("/"),
+            api_key=resolved_key,
+            model=resolved_model,
         )
 
 
@@ -143,12 +156,14 @@ def enhance(package: dict[str, Any], docs: list[dict], config: LLMConfig) -> dic
     def ensure_source(key: str) -> None:
         # LLM may cite a comment the structural pass filtered out; restore it
         # so referential integrity holds.
-        if key not in package["sources"]:
-            package["sources"][key] = known_docs[key]["source"]
+        if key in package["sources"] or key not in known_docs:
+            return
+        package["sources"][key] = known_docs[key]["source"]
 
     summary = result.get("summary")
     if isinstance(summary, str) and summary.strip():
-        cited = usable(result.get("key_sources") or []) or ["issue"]
+        default_keys = list(known_docs.keys()) or list(package.get("sources", {}).keys())
+        cited = usable(result.get("key_sources") or []) or default_keys[:1]
         for key in cited:
             ensure_source(key)
         package["summary"] = {"text": summary.strip()[:1200], "sources": cited, "confidence": 0.7}

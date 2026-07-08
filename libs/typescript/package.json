@@ -1,6 +1,6 @@
 {
   "name": "@ucpcore/core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Universal Context Package (UCP) — reference library: validation, TypeScript types, canonical LLM rendering",
   "license": "Apache-2.0",
   "type": "module",

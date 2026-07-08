@@ -1,0 +1,24 @@
+{
+  "ucp_version": "0.1.1",
+  "id": "urn:uuid:00000000-0000-4000-8000-000000000010",
+  "generated_at": "2026-07-08T12:00:00Z",
+  "generator": { "name": "conformance" },
+  "profiles": ["ucp-core"],
+  "entity": {
+    "ref": { "system": "filesystem", "type": "file", "id": "/docs/note.md" },
+    "title": "note.md"
+  },
+  "summary": { "text": "Claim carries salience_method for provenance." },
+  "must_know": [
+    {
+      "id": "c1",
+      "text": "Producer-ranked fact.",
+      "salience": 0.9,
+      "salience_method": "producer",
+      "sources": ["src-1"]
+    }
+  ],
+  "sources": {
+    "src-1": { "system": "filesystem", "type": "file", "title": "note.md" }
+  }
+}

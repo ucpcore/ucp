@@ -7,9 +7,12 @@ import ucp
 
 import ucp_gen.llm as llm_mod
 from ucp_gen.build import build_package, llm_docs
+from ucp_gen.build_document import llm_docs as document_llm_docs
+from ucp_gen import build_document_package
 from ucp_gen.llm import LLMConfig, LLMError, enhance
 
 from .fixtures import BUNDLE
+from .test_build_document import CONFLUENCE_PAGE_BUNDLE
 
 NOW = datetime(2026, 7, 5, 12, 0, 0, tzinfo=timezone.utc)
 CONFIG = LLMConfig(base_url="http://llm.test/v1", api_key="k", model="test-model")
@@ -111,6 +114,41 @@ def test_bad_json_raises_llm_error(monkeypatch, package_and_docs):
     monkeypatch.setattr(llm_mod, "_chat", lambda config, prompt: "I refuse.")
     with pytest.raises(LLMError):
         enhance(package, docs, CONFIG)
+
+
+def test_from_env_reads_openai_api_base(monkeypatch):
+    monkeypatch.delenv("UCP_LLM_BASE_URL", raising=False)
+    monkeypatch.setenv("OPENAI_API_BASE", "https://api.kie.ai/gemini/v1")
+    monkeypatch.setenv("OPENAI_API_KEY", "secret")
+    monkeypatch.setenv("UCP_LLM_MODEL", "gemini-flash")
+    cfg = LLMConfig.from_env()
+    assert cfg.base_url == "https://api.kie.ai/gemini/v1"
+    assert cfg.api_key == "secret"
+    assert cfg.model == "gemini-flash"
+
+
+def test_document_enhance_uses_document_key_not_issue(monkeypatch):
+    package = build_document_package(
+        copy.deepcopy(CONFLUENCE_PAGE_BUNDLE),
+        now=NOW,
+    )
+    docs = document_llm_docs(CONFLUENCE_PAGE_BUNDLE, package["generated_at"])
+    answer = {
+        "summary": "Confluence page describes ingestion pipeline.",
+        "key_sources": [],
+        "decisions": [],
+        "conflicts": [],
+    }
+    monkeypatch.setattr(
+        llm_mod,
+        "_chat",
+        lambda config, prompt: "```json\n" + json.dumps(answer) + "\n```",
+    )
+
+    enhanced = enhance(package, docs, CONFIG)
+    assert enhanced["summary"]["sources"] == ["document"]
+    assert enhanced["summary"]["confidence"] == 0.7
+    assert "llm_model" in enhanced["generator"]
 
 
 def test_cli_degrades_gracefully_when_llm_fails(monkeypatch, capsys, tmp_path):

@@ -31,11 +31,13 @@ from .models import (
     Summary,
 )
 from .render import estimate_tokens, render
+from .profiles import iter_profile_errors
+from .receipt_validation import iter_receipt_errors, receipt_schema, validate_receipt
 from .validation import UCPValidationError, iter_errors, schema, validate
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
-SPEC_VERSION = "0.1.0"
+SPEC_VERSION = "0.1.1"
 
 
 def loads(text: str, *, validate_schema: bool = True) -> Package:
@@ -85,6 +87,9 @@ __all__ = [
     "load",
     "loads",
     "render",
+    "iter_receipt_errors",
+    "receipt_schema",
     "schema",
     "validate",
+    "validate_receipt",
 ]

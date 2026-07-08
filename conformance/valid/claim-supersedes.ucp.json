@@ -1,0 +1,33 @@
+{
+  "ucp_version": "0.1.1",
+  "id": "urn:uuid:00000000-0000-4000-8000-000000000012",
+  "generated_at": "2026-07-08T12:00:00Z",
+  "generator": { "name": "conformance" },
+  "profiles": ["ucp-core"],
+  "entity": {
+    "ref": { "system": "github", "type": "issue", "id": "42" },
+    "title": "Superseded claim"
+  },
+  "summary": { "text": "New claim supersedes an earlier one." },
+  "must_know": [
+    {
+      "id": "c-old",
+      "text": "Old estimate: 2 weeks.",
+      "salience": 0.3,
+      "salience_method": "producer",
+      "sources": ["src-1"]
+    },
+    {
+      "id": "c-new",
+      "text": "Revised estimate: 4 weeks.",
+      "salience": 0.95,
+      "salience_method": "producer",
+      "supersedes": "c-old",
+      "sources": ["src-2"]
+    }
+  ],
+  "sources": {
+    "src-1": { "system": "github", "type": "comment", "title": "Comment A" },
+    "src-2": { "system": "github", "type": "comment", "title": "Comment B" }
+  }
+}

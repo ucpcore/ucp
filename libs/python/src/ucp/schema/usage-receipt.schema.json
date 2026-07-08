@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec.contextos.ai/ucp/0.1.1/usage-receipt.schema.json",
+  "title": "UCP Usage Receipt",
+  "description": "Consumer feedback after working with a UCP package (RFC-0007). Separate from the package document.",
+  "type": "object",
+  "required": [
+    "receipt_version",
+    "package_id",
+    "package_generated_at",
+    "consumer",
+    "outcome"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "receipt_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+      "description": "Semver of the Usage Receipt protocol."
+    },
+    "package_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "UCP package id the consumer worked with."
+    },
+    "package_generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "generated_at from the package (integrity binding)."
+    },
+    "consumer": {
+      "type": "object",
+      "required": ["type", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["sidebar", "mcp", "cli", "agent"]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Consumer identity, e.g. extension version or agent name."
+        },
+        "session_id": {
+          "type": "string",
+          "maxLength": 64
+        }
+      }
+    },
+    "claims_cited": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "claims_ignored": {
+      "type": "array",
+      "maxItems": 100,
+      "items": { "type": "string", "minLength": 1, "maxLength": 128 }
+    },
+    "gaps_needed": {
+      "type": "array",
+      "maxItems": 10,
+      "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["task_completed", "escalated", "failed", "abandoned"]
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "audience": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Principal id when receipt is scoped to an audience."
+    }
+  }
+}

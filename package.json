@@ -1,6 +1,6 @@
 {
   "name": "ucp-spec",
-  "version": "0.1.0-draft",
+  "version": "0.1.1",
   "description": "Universal Context Package — an open specification for packaging work context for LLMs",
   "private": true,
   "type": "module",

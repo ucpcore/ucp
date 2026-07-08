@@ -134,7 +134,7 @@ server and treat the returned package as the authoritative task context.
 
 | Method & path | Purpose |
 |---|---|
-| `POST /v1/generate` | Generate a package. Body: `{"source": "github"\|"jira", "ref": "...", "llm": false, "since": null, "audience": null}`. Returns the UCP JSON; headers `X-UCP-Package-Id` and `X-UCP-Cache: hit\|miss`. |
+| `POST /v1/generate` | Generate a package. Body: `{"source": "github"\|"jira", "ref": "...", "llm": false, "since": null, "audience": null}`. **Requires** `Content-Type: application/json`. Returns the UCP JSON; headers `X-UCP-Package-Id` and `X-UCP-Cache: hit\|miss`. With `since` (ISO timestamp), adds `context_diff` and the `ucp-temporal` profile. |
 | `GET /v1/packages` | Cached packages: id, title, entity, generated_at |
 | `GET /v1/packages/{id}` | Full UCP JSON |
 | `GET /v1/packages/{id}/markdown?token_budget=1500` | Canonical Markdown rendering |
@@ -161,6 +161,11 @@ curl -s -X POST http://localhost:8080/v1/generate \
   -H 'Content-Type: application/json' \
   -d '{"source": "github", "ref": "microsoft/vscode#519", "llm": true}'
 
+# Catch-up diff since a baseline (adds context_diff + ucp-temporal)
+curl -s -X POST http://localhost:8080/v1/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"source": "github", "ref": "pallets/flask#5961", "since": "2026-01-01T00:00:00Z"}'
+
 # Rendered Markdown under a token budget
 curl -s "http://localhost:8080/v1/packages/github-pallets-flask-5961/markdown?token_budget=1500"
 ```
@@ -174,7 +179,47 @@ reports clearly when a credential is missing for a requested source.
 |---|---|---|
 | `UCP_SERVER_HOST` | `127.0.0.1` (Docker image: `0.0.0.0`) | Bind address |
 | `UCP_SERVER_PORT` | `8080` | Bind port |
-| `UCP_SERVER_API_KEY` | *(unset — auth disabled)* | When set, all endpoints except health probes require `Authorization: Bearer <key>` |
+| `UCP_SERVER_API_KEY` | *(unset — auth disabled)* | Service Bearer key. When set (or when personal tokens exist), endpoints require `Authorization: Bearer …` |
+
+### Personal tokens (alpha.12.1)
+
+Admins create scoped tokens via `POST /v1/admin/tokens` (requires the service API key).
+Tokens use the `ctx_` prefix and map **principal** to the token name — personal tokens
+ignore the `audience` field on `/v1/generate`.
+
+| Scope | Allows |
+|---|---|
+| `generate` | `POST /v1/generate`, `GET /v1/packages*`, MCP `/mcp` |
+| `receipt` | `POST /v1/receipt` |
+| `admin:read` | `GET /v1/admin/*` (except token CRUD) |
+
+Token CRUD and sync triggers require `UCP_SERVER_API_KEY` (service principal).
+
+```bash
+# Create a token for a teammate (service key)
+curl -s -X POST http://localhost:8080/v1/admin/tokens \
+  -H "Authorization: Bearer $UCP_SERVER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"alice","scopes":["generate","receipt"]}'
+
+# Use in Cursor mcp.json
+# "headers": { "Authorization": "Bearer ctx_…" }
+```
+
+Access by personal tokens is logged to `GET /v1/admin/access-log` (principal = token name).
+
+### Hosted pilot (0.4.0)
+
+For dedicated-tenant deployments set `UCP_TENANT_SLUG`, `UCP_PUBLIC_BASE_URL`, and
+`UCP_HOSTED_MODE=1`. Public MCP URL becomes `{base}/v1/{slug}/mcp`. See
+[`deploy/pilot/README.md`](../../deploy/pilot/README.md) and Cursor template
+[`clients/cursor/ucp-hosted.md`](clients/cursor/ucp-hosted.md).
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `UCP_TENANT_SLUG` | *(unset)* | Tenant slug in public URLs (`acme-corp`) |
+| `UCP_PUBLIC_BASE_URL` | *(unset)* | External base URL for landing + setup JSON |
+| `UCP_HOSTED_MODE` | `false` | When true, block legacy `/mcp` and `/v1/*` without slug |
 | `UCP_CACHE_DIR` | `~/.cache/ucp-server` | Disk cache for generated packages |
 | `UCP_CACHE_TTL` | `900` (15 min) | Cache TTL in seconds; `0` disables caching |
 | `GITHUB_TOKEN` / `GH_TOKEN` | *(unset)* | GitHub token (public issues work without it, at a low rate limit) |
@@ -190,8 +235,9 @@ reports clearly when a credential is missing for a requested source.
 ## Security
 
 - **Set `UCP_SERVER_API_KEY` for any non-localhost deployment.** Without it
-  anyone who can reach the port can spend your GitHub/Jira/LLM quota. The
-  key is compared in constant time; health probes stay open for orchestrators.
+  anyone who can reach the port can spend your GitHub/Jira/LLM quota — unless
+  you rely solely on personal tokens (`ctx_…`). The service key is compared in
+  constant time; health probes and `/admin` login shell stay open.
 - **Bind is `127.0.0.1` by default** when run directly. The Docker image
   sets `UCP_SERVER_HOST=0.0.0.0` deliberately — the container boundary is
   the isolation there; publish the port consciously (`-p 127.0.0.1:8080:8080`

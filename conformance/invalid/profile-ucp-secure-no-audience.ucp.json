@@ -1,0 +1,15 @@
+{
+  "ucp_version": "0.1.1",
+  "id": "urn:uuid:00000000-0000-4000-8000-000000000020",
+  "generated_at": "2026-07-08T12:00:00Z",
+  "generator": { "name": "conformance" },
+  "profiles": ["ucp-secure"],
+  "entity": {
+    "ref": { "system": "filesystem", "type": "file", "id": "/secret.md" },
+    "title": "secret.md"
+  },
+  "summary": { "text": "Declares ucp-secure without audience — profile invalid." },
+  "sources": {
+    "src-1": { "system": "filesystem", "type": "file", "title": "secret.md" }
+  }
+}

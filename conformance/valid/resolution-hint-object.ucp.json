@@ -1,0 +1,29 @@
+{
+  "ucp_version": "0.1.1",
+  "id": "urn:uuid:00000000-0000-4000-8000-000000000011",
+  "generated_at": "2026-07-08T12:00:00Z",
+  "generator": { "name": "conformance" },
+  "entity": {
+    "ref": { "system": "jira", "type": "issue", "id": "X-1" },
+    "title": "Conflict example"
+  },
+  "summary": { "text": "Structured resolution_hint object." },
+  "conflicts": [
+    {
+      "id": "cf-1",
+      "description": "Two sources disagree on TTL.",
+      "positions": [
+        { "claim": "TTL is 24h", "sources": ["src-1"] },
+        { "claim": "TTL is 7d", "sources": ["src-2"] }
+      ],
+      "resolution_hint": {
+        "basis": "recency",
+        "note": "src-2 updated after src-1"
+      }
+    }
+  ],
+  "sources": {
+    "src-1": { "system": "confluence", "type": "page", "title": "Old RFC" },
+    "src-2": { "system": "confluence", "type": "page", "title": "New RFC" }
+  }
+}

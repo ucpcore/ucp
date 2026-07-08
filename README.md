@@ -10,7 +10,7 @@ context package for LLM agents.**
 [![npm: @ucpcore/core](https://img.shields.io/npm/v/%40ucpcore%2Fcore?label=%40ucpcore%2Fcore)](https://www.npmjs.com/package/@ucpcore/core)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 
-Version: `0.1.0-draft` · Status: Draft · [ucpcore.org](https://ucpcore.org)
+Version: `0.1.1` · Status: Draft · [ucpcore.org](https://ucpcore.org)
 
 ---
 
@@ -287,6 +287,7 @@ the standard is open, the craft is the market.
 |---|---|
 | [`SPEC.md`](./SPEC.md) | The normative specification |
 | [`schema/ucp.schema.json`](./schema/ucp.schema.json) | JSON Schema (draft 2020-12) |
+| [`schema/usage-receipt.schema.json`](./schema/usage-receipt.schema.json) | Usage Receipt JSON Schema (RFC-0007) |
 | [`examples/`](./examples/) | Complete example packages |
 | [`conformance/`](./conformance/) | Conformance test suite (valid / invalid packages) |
 | `libs/python` | `pyucp` — models, validation, canonical rendering |

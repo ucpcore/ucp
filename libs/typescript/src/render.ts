@@ -6,7 +6,15 @@
  * drop in ascending-salience order within sections, sections drop in the
  * order of SPEC §7.2, and summary/conflicts/context_diff survive longest.
  */
-import type { Claim, RelatedObject, Source, UCPackage, UCPEvent } from "./types.js";
+import type {
+  Claim,
+  Conflict,
+  RelatedObject,
+  ResolutionHintObject,
+  Source,
+  UCPackage,
+  UCPEvent,
+} from "./types.js";
 
 /** Sections whose items may be dropped under a token budget, cheapest first. */
 export const DROP_ORDER = [
@@ -39,6 +47,14 @@ function date(iso: string | null | undefined): string {
 
 function sourceLabels(keys: string[] | undefined, sources: Record<string, Source>): string {
   return (keys ?? []).map((k) => sources[k]?.title ?? k).join(", ");
+}
+
+function formatResolutionHint(
+  hint: string | ResolutionHintObject | undefined
+): string | undefined {
+  if (hint === undefined) return undefined;
+  if (typeof hint === "string") return hint;
+  return hint.note ? `${hint.basis}: ${hint.note}` : hint.basis;
 }
 
 function claimLine(claim: Claim, sources: Record<string, Source>): string {
@@ -116,7 +132,8 @@ function renderOnce(pkg: UCPackage): string {
         const when = position.asserted_at ? ` (${date(position.asserted_at)})` : "";
         out.push(`  - ${position.claim}${when} [source: ${sourceLabels(position.sources, src)}]`);
       }
-      if (conflict.resolution_hint) out.push(`  - Hint: ${conflict.resolution_hint}`);
+      const hint = formatResolutionHint(conflict.resolution_hint);
+      if (hint) out.push(`  - Hint: ${hint}`);
     }
     out.push("");
   }

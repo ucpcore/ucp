@@ -1,0 +1,16 @@
+{
+  "receipt_version": "0.1.0",
+  "package_id": "urn:uuid:7f9c2e14-3b8a-4d2f-9c61-2e8f0a1b4c5d",
+  "package_generated_at": "2026-07-05T13:40:00Z",
+  "consumer": {
+    "type": "sidebar",
+    "id": "0.3.0-alpha.12",
+    "session_id": "sess-001"
+  },
+  "claims_cited": ["mk-1", "mk-2"],
+  "claims_ignored": ["mk-3"],
+  "gaps_needed": [],
+  "outcome": "task_completed",
+  "submitted_at": "2026-07-05T13:45:00Z",
+  "audience": "user:alice@acme.com"
+}

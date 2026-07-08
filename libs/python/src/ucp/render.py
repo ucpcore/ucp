@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 from copy import deepcopy
 from datetime import datetime
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from .models import Claim, Package, Source
 
@@ -45,6 +45,18 @@ def _date(dt: Optional[datetime]) -> str:
 def _source_labels(keys: list[str], sources: dict[str, Source]) -> str:
     titles = [sources[k].title if k in sources else k for k in keys]
     return ", ".join(titles)
+
+
+def _format_resolution_hint(hint: Any) -> Optional[str]:
+    if hint is None:
+        return None
+    if isinstance(hint, str):
+        return hint
+    basis = getattr(hint, "basis", None) or (hint.get("basis") if isinstance(hint, dict) else "")
+    note = getattr(hint, "note", None) or (hint.get("note") if isinstance(hint, dict) else None)
+    if note:
+        return f"{basis}: {note}"
+    return str(basis) if basis else None
 
 
 def _claim_line(claim: Claim, sources: dict[str, Source]) -> str:
@@ -122,8 +134,9 @@ def _render(pkg: Package) -> str:
                 when = f" ({_date(position.asserted_at)})" if position.asserted_at else ""
                 label = _source_labels(position.sources, src)
                 out.append(f"  - {position.claim}{when} [source: {label}]")
-            if conflict.resolution_hint:
-                out.append(f"  - Hint: {conflict.resolution_hint}")
+            hint = _format_resolution_hint(conflict.resolution_hint)
+            if hint:
+                out.append(f"  - Hint: {hint}")
         out.append("")
 
     if pkg.recommended_actions:

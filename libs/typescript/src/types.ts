@@ -44,6 +44,8 @@ export interface Summary {
   [key: string]: unknown;
 }
 
+export type SalienceMethod = "producer" | "llm" | "graph" | "ranking" | "default";
+
 export interface Claim {
   id: string;
   text: string;
@@ -51,10 +53,12 @@ export interface Claim {
   sources: string[];
   kind?: string;
   salience?: number;
+  salience_method?: SalienceMethod;
   confidence?: number;
   asserted_at?: string;
   valid_from?: string;
   valid_to?: string | null;
+  supersedes?: string;
   tags?: string[];
   [key: string]: unknown;
 }
@@ -80,11 +84,17 @@ export interface ConflictPosition {
   [key: string]: unknown;
 }
 
+export interface ResolutionHintObject {
+  basis: "recency" | "authority" | "consensus" | "manual";
+  note?: string;
+  [key: string]: unknown;
+}
+
 export interface Conflict {
   id: string;
   description: string;
   positions: ConflictPosition[];
-  resolution_hint?: string;
+  resolution_hint?: string | ResolutionHintObject;
   severity?: "low" | "medium" | "high";
   [key: string]: unknown;
 }

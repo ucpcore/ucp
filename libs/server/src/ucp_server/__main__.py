@@ -22,12 +22,21 @@ def main() -> int:
     configure_logging(json_logs=settings.log_json, level=settings.log_level)
     logger = logging.getLogger("ucp_server")
     logger.info("ucp-server starting on %s:%s", settings.host, settings.port)
-    if settings.api_key:
-        logger.info("authentication: enabled (Bearer)")
+    from .auth import auth_required
+    from .token_store import get_token_store
+
+    token_store = get_token_store(settings)
+    if auth_required(settings, token_store):
+        modes = []
+        if settings.api_key:
+            modes.append("service API key")
+        if token_store.has_active_tokens():
+            modes.append("personal tokens")
+        logger.info("authentication: enabled (%s)", ", ".join(modes))
     else:
         logger.warning(
-            "authentication: DISABLED — set UCP_SERVER_API_KEY before exposing "
-            "this server beyond localhost"
+            "authentication: DISABLED — set UCP_SERVER_API_KEY or create personal "
+            "tokens before exposing this server beyond localhost"
         )
     if settings.cache_ttl > 0:
         logger.info("cache: %s (ttl %ss)", settings.cache_dir, settings.cache_ttl)

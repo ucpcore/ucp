@@ -24,7 +24,13 @@ async def _call(mcp, tool, arguments=None):
 async def test_tool_inventory(mcp):
     async with Client(mcp) as client:
         tools = {tool.name for tool in await client.list_tools()}
-    assert tools == {"generate_context", "list_contexts", "get_context", "get_context_markdown"}
+    assert tools == {
+        "generate_context",
+        "list_contexts",
+        "get_context",
+        "get_context_markdown",
+        "submit_usage_receipt",
+    }
 
 
 async def test_generate_context_returns_valid_package(mcp):
@@ -89,7 +95,28 @@ async def test_ucp_context_prompt_detects_github(mcp):
     assert 'ref="acme/rocket#42"' in text
     assert "generate_context" in text
     assert "authoritative task context" in text
-    assert "llm" not in text
+    assert "submit_usage_receipt" in text
+
+
+async def test_submit_usage_receipt_after_generate(mcp):
+    gen = json.loads(
+        await _call(mcp, "generate_context", {"source": "github", "ref": "acme/rocket#42"})
+    )
+    package_id = gen["id"]
+    answer = json.loads(
+        await _call(
+            mcp,
+            "submit_usage_receipt",
+            {
+                "package_id": package_id,
+                "outcome": "task_completed",
+                "claims_cited": ["summary"],
+                "claims_ignored": [],
+            },
+        )
+    )
+    assert answer["status"] == "ok"
+    assert answer["package_id"] == package_id
 
 
 async def test_ucp_context_prompt_detects_jira_and_llm(mcp):

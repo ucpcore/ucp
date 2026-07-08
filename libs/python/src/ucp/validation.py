@@ -8,6 +8,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from .profiles import iter_profile_errors
+
 
 class UCPValidationError(ValueError):
     """Raised when a document does not conform to the UCP schema."""
@@ -30,15 +32,18 @@ def _validator() -> Draft202012Validator:
 
 
 def iter_errors(data: dict[str, Any]) -> list[str]:
-    """Validate ``data`` and return human-readable error messages (empty = valid)."""
-    return [
+    """Schema + profile errors (empty = valid)."""
+    schema_errors = [
         f"{'/'.join(str(p) for p in error.absolute_path) or '<root>'}: {error.message}"
         for error in _validator().iter_errors(data)
     ]
+    if schema_errors:
+        return schema_errors
+    return iter_profile_errors(data)
 
 
 def validate(data: dict[str, Any]) -> None:
-    """Validate ``data`` against the UCP schema, raising :class:`UCPValidationError`."""
+    """Validate ``data`` against the UCP schema and declared profiles."""
     errors = iter_errors(data)
     if errors:
         raise UCPValidationError(errors)

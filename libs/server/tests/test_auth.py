@@ -3,7 +3,8 @@ import inspect
 import pytest
 from fastapi.testclient import TestClient
 
-from ucp_server.app import _AuthMiddleware, create_app
+from ucp_server.auth import AuthMiddleware
+from ucp_server.app import create_app
 
 from .conftest import make_settings
 
@@ -25,6 +26,18 @@ def test_missing_key_is_401_problem_json(secured):
     assert resp.status_code == 401
     assert resp.headers["content-type"].startswith("application/problem+json")
     assert resp.json()["title"] == "Unauthorized"
+
+
+def test_cors_on_401_for_chrome_extension(secured):
+    origin = "chrome-extension://egicgklglmnocmeagceoejjniimjbjk"
+    resp = secured.post(
+        "/v1/generate",
+        json={"source": "github", "ref": "acme/rocket#42"},
+        headers={"Origin": origin},
+    )
+    assert resp.status_code == 401
+    assert resp.headers["access-control-allow-origin"] == origin
+    assert resp.headers["access-control-allow-private-network"] == "true"
 
 
 def test_wrong_key_is_401(secured):
@@ -55,10 +68,12 @@ def test_docs_are_protected_too(secured):
 
 
 def test_comparison_is_constant_time():
-    # The guarantee lives in secrets.compare_digest; assert we use it rather
-    # than a timing-leaky `==` on the supplied credential.
-    source = inspect.getsource(_AuthMiddleware.dispatch)
-    assert "secrets.compare_digest" in source
+    # compare_digest lives in resolve_auth (service key) and TokenStore.resolve.
+    from ucp_server import auth as auth_mod
+    from ucp_server import token_store as token_mod
+
+    assert "secrets.compare_digest" in inspect.getsource(auth_mod.resolve_auth)
+    assert "secrets.compare_digest" in inspect.getsource(token_mod.TokenStore.resolve)
 
 
 def test_no_key_configured_means_open_server(client):

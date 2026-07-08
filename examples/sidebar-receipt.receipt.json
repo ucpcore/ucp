@@ -1,0 +1,11 @@
+{
+  "receipt_version": "0.1.0",
+  "package_id": "pkg",
+  "package_generated_at": "2026-07-08T12:00:00Z",
+  "consumer": { "type": "cli", "id": "ucp-gen" },
+  "claims_cited": ["mk-1"],
+  "claims_ignored": ["ghost-claim"],
+  "gaps_needed": ["Need rate-limit docs"],
+  "outcome": "escalated",
+  "submitted_at": "2026-07-08T12:05:00Z"
+}

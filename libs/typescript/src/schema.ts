@@ -2,7 +2,7 @@
 // Do not edit by hand.
 export const ucpSchema = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://spec.contextos.ai/ucp/0.1/ucp.schema.json",
+  "$id": "https://spec.contextos.ai/ucp/0.1.1/ucp.schema.json",
   "title": "Universal Context Package",
   "description": "An open format for packaging task context for LLMs: claim-based, provenance-mandatory, time-aware, permission-aware. See SPEC.md for normative text.",
   "type": "object",
@@ -73,36 +73,42 @@ export const ucpSchema = {
     },
     "must_know": {
       "type": "array",
+      "maxItems": 200,
       "items": {
         "$ref": "#/$defs/Claim"
       }
     },
     "constraints": {
       "type": "array",
+      "maxItems": 200,
       "items": {
         "$ref": "#/$defs/Claim"
       }
     },
     "risks": {
       "type": "array",
+      "maxItems": 200,
       "items": {
         "$ref": "#/$defs/Claim"
       }
     },
     "recommended_actions": {
       "type": "array",
+      "maxItems": 200,
       "items": {
         "$ref": "#/$defs/Claim"
       }
     },
     "decisions": {
       "type": "array",
+      "maxItems": 50,
       "items": {
         "$ref": "#/$defs/Decision"
       }
     },
     "conflicts": {
       "type": "array",
+      "maxItems": 20,
       "items": {
         "$ref": "#/$defs/Conflict"
       }
@@ -265,6 +271,9 @@ export const ucpSchema = {
         "salience": {
           "$ref": "#/$defs/UnitInterval"
         },
+        "salience_method": {
+          "$ref": "#/$defs/SalienceMethod"
+        },
         "confidence": {
           "$ref": "#/$defs/UnitInterval"
         },
@@ -290,6 +299,10 @@ export const ucpSchema = {
             }
           ],
           "description": "null or absent means currently valid."
+        },
+        "supersedes": {
+          "type": "string",
+          "description": "id of an earlier claim superseded by this one."
         },
         "tags": {
           "type": "array",
@@ -379,7 +392,7 @@ export const ucpSchema = {
           }
         },
         "resolution_hint": {
-          "type": "string"
+          "$ref": "#/$defs/ResolutionHint"
         },
         "severity": {
           "enum": [
@@ -667,6 +680,46 @@ export const ucpSchema = {
       "type": "number",
       "minimum": 0,
       "maximum": 1
+    },
+    "SalienceMethod": {
+      "type": "string",
+      "enum": [
+        "producer",
+        "llm",
+        "graph",
+        "ranking",
+        "default"
+      ],
+      "description": "How salience was assigned (provenance for ranking trust)."
+    },
+    "ResolutionHint": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "basis"
+          ],
+          "properties": {
+            "basis": {
+              "type": "string",
+              "enum": [
+                "recency",
+                "authority",
+                "consensus",
+                "manual"
+              ]
+            },
+            "note": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      ],
+      "description": "Human- or machine-readable hint for resolving a conflict."
     }
   }
 } as const;

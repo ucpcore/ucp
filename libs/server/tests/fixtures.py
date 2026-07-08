@@ -53,3 +53,17 @@ JIRA_BUNDLE = {
     },
     "comments": [],
 }
+
+DOCUMENT_BUNDLE = {
+    "source_system": "confluence",
+    "object_type": "page",
+    "external_id": "DOCS:123456",
+    "title": "Architecture RFC v2",
+    "url": "https://example.atlassian.net/wiki/spaces/DOCS/pages/123456",
+    "parent": {"type": "space", "id": "DOCS", "name": "Confluence space DOCS"},
+    "author": {"email": "author@example.com", "id": "abc123"},
+    "created_at": "2026-01-15T10:00:00.000Z",
+    "updated_at": "2026-06-01T14:30:00.000Z",
+    "content_text": "This RFC describes the Context OS ingestion pipeline.",
+    "content_hash": "sha256:" + "a" * 64,
+}
