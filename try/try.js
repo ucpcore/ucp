@@ -179,6 +179,26 @@
     results.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function curatedMeta(example, pkg) {
+    var structuralOnly = example.structural_only !== false;
+    var hasLlm = pkg && pkg.generator && pkg.generator.llm_model;
+    if (!structuralOnly || hasLlm) {
+      return { llm_applied: true, mode: "curated" };
+    }
+    return { mode: "structural", structural_only: true };
+  }
+
+  function curatedStatus(example, pkg) {
+    var meta = curatedMeta(example, pkg);
+    if (meta.llm_applied) {
+      return "Pre-generated AI-enhanced package (instant). Toggle Enhance with AI for a fresh live digest.";
+    }
+    if (manifest && manifest.structural_note) {
+      return manifest.structural_note;
+    }
+    return "Instant structural preview (first paragraph as summary). Enable Enhance with AI for a real thread digest.";
+  }
+
   function loadCurated(example) {
     setLoading(true);
     setStatus("Loading " + example.ref + "…", "loading");
@@ -188,6 +208,7 @@
         return r.json();
       })
       .then(function (pkg) {
+        var meta = curatedMeta(example, pkg);
         renderPackage(pkg, {
           ref: example.ref,
           raw_tokens: example.raw_tokens,
@@ -195,12 +216,8 @@
           reduction_pct: example.raw_tokens
             ? Math.max(0, Math.round(100 - (example.ucp_tokens * 100 / example.raw_tokens)))
             : 0,
-        }, { mode: "structural", structural_only: true });
-        setStatus(
-          "Instant structural preview (first paragraph as summary). " +
-            "Enable Enhance with AI for a real thread digest.",
-          "ok"
-        );
+        }, meta);
+        setStatus(curatedStatus(example, pkg), "ok");
       });
   }
 
