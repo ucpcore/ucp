@@ -1,0 +1,32 @@
+{
+  "demo_api": "https://demo.ucpcore.org/v1/demo/generate",
+  "examples": [
+    {
+      "ref": "microsoft/vscode#519",
+      "label": "vscode#519",
+      "hint": "596 comments · 15× smaller",
+      "file": "microsoft-vscode-519.ucp.json",
+      "raw_tokens": 18517,
+      "ucp_tokens": 1225,
+      "comments": "200 of 596"
+    },
+    {
+      "ref": "rust-lang/rust#158622",
+      "label": "rust#158622",
+      "hint": "compiler ICE thread",
+      "file": "rust-lang-rust-158622.ucp.json",
+      "raw_tokens": 4464,
+      "ucp_tokens": 1398,
+      "comments": "13"
+    },
+    {
+      "ref": "pallets/flask#5961",
+      "label": "flask#5961",
+      "hint": "small bug report",
+      "file": "pallets-flask-5961.ucp.json",
+      "raw_tokens": 808,
+      "ucp_tokens": 713,
+      "comments": "4"
+    }
+  ]
+}

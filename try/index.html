@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Try UCP · Universal Context Package</title>
+<meta name="description" content="Paste a public GitHub issue URL and get a structured context package in seconds — summary, must-know facts, decisions, conflicts. No install.">
+<meta property="og:title" content="Try UCP — instant issue digest">
+<meta property="og:description" content="Turn a sprawling GitHub thread into a verifiable UCP package in your browser.">
+<meta property="og:url" content="https://ucpcore.org/try/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='SF Mono,Menlo,monospace' font-size='15' font-weight='700' fill='%234cc38a' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="/assets/site.css?v=5">
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <a class="brand" href="/"><span class="mark">{ }</span> UCP</a>
+    <nav class="nav-links" aria-label="Main">
+      <a href="/try/" class="active">Try</a>
+      <a href="/quickstart/">Quickstart</a>
+      <a href="/mcp/">MCP</a>
+      <a href="/spec/">Spec</a>
+      <a href="/examples/">Examples</a>
+      <a href="https://github.com/ucpcore/ucp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="try-main">
+  <div class="wrap try-hero">
+    <h1>Try it on any public GitHub issue</h1>
+    <p class="section-sub">Paste a link or pick a famous thread. Get a structured digest —
+    summary, must-know facts, decisions, conflicts — with hashed sources. No CLI, no MCP config.</p>
+
+    <form class="try-form" id="try-form" autocomplete="off">
+      <label class="sr-only" for="try-input">GitHub issue URL or owner/repo#number</label>
+      <input type="text" id="try-input" name="ref" placeholder="https://github.com/microsoft/vscode/issues/519  or  microsoft/vscode#519" spellcheck="false">
+      <button type="submit" class="btn btn-primary" id="try-submit">Generate</button>
+    </form>
+
+    <div class="try-picks" id="try-picks" aria-label="Curated examples"></div>
+    <p class="try-hint" id="try-status" role="status"></p>
+  </div>
+
+  <div class="wrap try-results hidden" id="try-results" aria-live="polite">
+    <div class="try-stats" id="try-stats"></div>
+    <div class="try-grid">
+      <section class="try-panel">
+        <h2>Summary</h2>
+        <p id="try-summary" class="try-prose"></p>
+      </section>
+      <section class="try-panel">
+        <h2>Must know</h2>
+        <ol class="try-claims" id="try-must-know"></ol>
+      </section>
+      <section class="try-panel">
+        <h2>Decisions</h2>
+        <ul class="try-list" id="try-decisions"></ul>
+      </section>
+      <section class="try-panel">
+        <h2>Conflicts</h2>
+        <ul class="try-list" id="try-conflicts"></ul>
+      </section>
+    </div>
+    <div class="try-foot">
+      <a href="#" id="try-json-link" class="btn btn-secondary">Download JSON</a>
+      <span class="try-foot-note">Generated with <code>ucp-gen</code> · validates against UCP 0.1.1</span>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a href="/">Home</a>
+    <a href="/quickstart/">Quickstart</a>
+    <a href="/mcp/">MCP</a>
+    <a href="/spec/">Spec</a>
+    <a href="https://github.com/ucpcore/ucp">GitHub</a>
+    <span class="lic">ucpcore.org/try · Apache-2.0</span>
+  </div>
+</footer>
+
+<script src="/assets/site.js"></script>
+<script src="/try/try.js?v=1"></script>
+</body>
+</html>

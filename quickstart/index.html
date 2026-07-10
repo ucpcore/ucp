@@ -14,6 +14,7 @@
   <div class="wrap nav">
     <a class="brand" href="/"><span class="mark">{ }</span> UCP</a>
     <nav class="nav-links" aria-label="Main">
+      <a href="/try/">Try</a>
       <a href="/quickstart/" class="active">Quickstart</a>
       <a href="/mcp/">MCP</a>
       <a href="/spec/">Spec</a>
@@ -27,7 +28,16 @@
   <div class="wrap">
     <h1>Quickstart</h1>
     <p class="doc-lead">From zero to a loaded task context in Cursor in under five minutes.
-    One self-hosted server handles generation, caching, REST, and MCP.</p>
+    One self-hosted server handles generation, caching, REST, and MCP.
+    No install? <a href="/try/">Try UCP in the browser</a> first.</p>
+
+    <h2>0. Browser demo (no install)</h2>
+    <p>Open <a href="/try/">ucpcore.org/try</a> — paste any public GitHub issue URL.
+    Curated mega-threads load instantly; other issues use the public demo API when deployed:</p>
+    <div class="cmd"><code>docker run --rm -p 8080:8080 -e UCP_DEMO_ENABLED=1 -e GITHUB_TOKEN=ghp_… \
+  ghcr.io/ucpcore/ucp-server:latest</code><button class="copy" data-copy="docker run --rm -p 8080:8080 -e UCP_DEMO_ENABLED=1 -e GITHUB_TOKEN=ghp_yourtoken ghcr.io/ucpcore/ucp-server:latest" aria-label="Copy demo server command"></button></div>
+    <p>Demo endpoint: <code>POST /v1/demo/generate</code> with body
+    <code>{"ref":"owner/repo#123"}</code> — rate-limited, GitHub only, CORS-enabled for ucpcore.org.</p>
 
     <h2>1. Start the server</h2>
     <p>Pick Docker or <code>uvx</code>. The server listens on port 8080 and exposes

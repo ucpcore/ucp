@@ -1,0 +1,334 @@
+{
+  "ucp_version": "0.1.0",
+  "id": "urn:uuid:50bef0a5-3461-4abc-b195-13c96d5d0e0a",
+  "generated_at": "2026-07-10T14:22:18.383433Z",
+  "generator": {
+    "name": "ucp-gen",
+    "version": "0.3.2",
+    "url": "https://github.com/ucpcore/ucp"
+  },
+  "profiles": [
+    "ucp-core"
+  ],
+  "entity": {
+    "ref": {
+      "system": "github",
+      "type": "issue",
+      "id": "pallets/flask#5961",
+      "url": "https://github.com/pallets/flask/issues/5961"
+    },
+    "title": "Flask 3.1.3 test (`test_environ_for_valid_idna_completes`) breaks after Werkzeug update from 3.1.6 to 3.1.7",
+    "status": "closed"
+  },
+  "summary": {
+    "text": "Flask 3.1.3 test (`test_environ_for_valid_idna_completes`) breaks after Werkzeug update from 3.1.6 to 3.1.7.",
+    "sources": [
+      "issue"
+    ]
+  },
+  "must_know": [
+    {
+      "id": "state",
+      "text": "Issue is closed (completed)",
+      "salience": 0.95,
+      "salience_method": "producer",
+      "sources": [
+        "issue"
+      ],
+      "kind": "status",
+      "asserted_at": "2026-04-08T00:18:09Z"
+    },
+    {
+      "id": "assignees",
+      "text": "Nobody is assigned",
+      "salience": 0.6,
+      "salience_method": "producer",
+      "sources": [
+        "issue"
+      ],
+      "kind": "fact"
+    },
+    {
+      "id": "pr-5962-state",
+      "text": "PR #5962 “remove unicode host test” is merged",
+      "salience": 0.9,
+      "salience_method": "producer",
+      "sources": [
+        "pr-5962"
+      ],
+      "kind": "status",
+      "asserted_at": "2026-03-24T13:55:57Z"
+    },
+    {
+      "id": "comment-4118450512-gist",
+      "text": "davidism: Seems that issue was fixed in late 2021 and compose v2 uses dashes instead of underscores.",
+      "salience": 0.55,
+      "salience_method": "producer",
+      "sources": [
+        "comment-4118450512"
+      ],
+      "kind": "fact",
+      "asserted_at": "2026-03-24T13:46:34Z"
+    },
+    {
+      "id": "comment-4118235752-gist",
+      "text": "ThiefMaster: Looks like it's been reported, I found multiple issues related to this, some older than a decade... https://github.com/docker/compose/issues/229 So maybe by now they also offer dashed alternatives you can use? (I honestly didn't read through the whole issue)",
+      "salience": 0.5,
+      "salience_method": "producer",
+      "sources": [
+        "comment-4118235752"
+      ],
+      "kind": "fact",
+      "asserted_at": "2026-03-24T13:20:19Z"
+    },
+    {
+      "id": "comment-4118201977-gist",
+      "text": "davidism: That test is just wrong, the `Host` header should only contain ASCII. Hostnames cannot have underscores. That needs to be reported as a bug to Docker Compose, regardless of if we change anything in Werkzeug.",
+      "salience": 0.45000000000000007,
+      "salience_method": "producer",
+      "sources": [
+        "comment-4118201977"
+      ],
+      "kind": "fact",
+      "asserted_at": "2026-03-24T13:16:21Z"
+    },
+    {
+      "id": "comment-4116747049-gist",
+      "text": "ap-wtioit: We got this error in our integration tests for a flask app after werkzeug released 3.1.7, getting 400 status code with the following response: ``` <!doctype html> <html lang=en> <title>400 Bad Request</title> <h1>Bad Request</h1> <p>Host…",
+      "salience": 0.4,
+      "salience_method": "producer",
+      "sources": [
+        "comment-4116747049"
+      ],
+      "kind": "fact",
+      "asserted_at": "2026-03-24T09:40:51Z"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "decision-pr-5962",
+      "decision": "Implemented via PR #5962: remove unicode host test",
+      "status": "accepted",
+      "sources": [
+        "pr-5962"
+      ],
+      "decided_by": {
+        "id": "github:davidism",
+        "display_name": "davidism"
+      },
+      "decided_at": "2026-03-24T13:55:57Z"
+    }
+  ],
+  "history": [
+    {
+      "occurred_at": "2026-03-24T08:38:52Z",
+      "summary": "Issue opened by ancieg",
+      "actor": {
+        "id": "github:ancieg",
+        "display_name": "ancieg"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2026-03-24T09:40:51Z",
+      "summary": "ap-wtioit commented",
+      "actor": {
+        "id": "github:ap-wtioit",
+        "display_name": "ap-wtioit"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2026-03-24T10:41:33Z",
+      "summary": "Referenced by issue #3137",
+      "actor": {
+        "id": "github:ap-wtioit",
+        "display_name": "ap-wtioit"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2026-03-24T13:16:21Z",
+      "summary": "davidism commented",
+      "actor": {
+        "id": "github:davidism",
+        "display_name": "davidism"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2026-03-24T13:20:19Z",
+      "summary": "ThiefMaster commented",
+      "actor": {
+        "id": "github:ThiefMaster",
+        "display_name": "ThiefMaster"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2026-03-24T13:46:34Z",
+      "summary": "davidism commented",
+      "actor": {
+        "id": "github:davidism",
+        "display_name": "davidism"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2026-03-24T13:54:01Z",
+      "summary": "Referenced by PR #5962",
+      "actor": {
+        "id": "github:davidism",
+        "display_name": "davidism"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2026-03-24T13:55:59Z",
+      "summary": "davidism closed the issue",
+      "actor": {
+        "id": "github:davidism",
+        "display_name": "davidism"
+      },
+      "sources": [
+        "issue"
+      ]
+    }
+  ],
+  "related_objects": [
+    {
+      "ref": {
+        "system": "github",
+        "type": "pull_request",
+        "id": "pallets/flask#5962",
+        "url": "https://github.com/pallets/flask/pull/5962"
+      },
+      "title": "remove unicode host test",
+      "relation": "implements",
+      "salience": 0.9
+    }
+  ],
+  "sources": {
+    "issue": {
+      "system": "github",
+      "type": "ticket",
+      "title": "pallets/flask#5961: Flask 3.1.3 test (`test_environ_for_valid_idna_completes`) breaks after Werkzeug update from 3.1.6 to 3.1.7",
+      "url": "https://github.com/pallets/flask/issues/5961",
+      "author": {
+        "id": "github:ancieg",
+        "display_name": "ancieg"
+      },
+      "created_at": "2026-03-24T08:38:52Z",
+      "updated_at": "2026-04-08T00:18:09Z",
+      "content_hash": "sha256:338467ac151f622cdb1e7ff94bcc187a017e45c7b8e7fa2ca9f73b625c7aaa76",
+      "retrieved_at": "2026-07-10T14:22:18.383433Z",
+      "excerpt": "Flask 3.1.3 test (`test_environ_for_valid_idna_completes`) breaks after Werkzeug update from 3.1.6 to 3.1.7. To replicate the bug you just need to run testsuite: ``` $ python3 -m pytest -vra <...> =================================== FAILURES ===================================…"
+    },
+    "comment-4116747049": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by ap-wtioit",
+      "url": "https://github.com/pallets/flask/issues/5961#issuecomment-4116747049",
+      "author": {
+        "id": "github:ap-wtioit",
+        "display_name": "ap-wtioit"
+      },
+      "created_at": "2026-03-24T09:40:51Z",
+      "content_hash": "sha256:4e1d173cc67db49a54a38087c693be3f3717d09e94a25c394f1ef8712778be61",
+      "retrieved_at": "2026-07-10T14:22:18.383433Z",
+      "excerpt": "We got this error in our integration tests for a flask app after werkzeug released 3.1.7, getting 400 status code with the following response: ``` <!doctype html> <html lang=en> <title>400 Bad Request</title> <h1>Bad Request</h1> <p>Host…"
+    },
+    "comment-4118201977": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by davidism",
+      "url": "https://github.com/pallets/flask/issues/5961#issuecomment-4118201977",
+      "author": {
+        "id": "github:davidism",
+        "display_name": "davidism"
+      },
+      "created_at": "2026-03-24T13:16:21Z",
+      "content_hash": "sha256:1a0d8e382a79f11c50426de2a1f7970046a38325f7a710bdfac6d942d6514860",
+      "retrieved_at": "2026-07-10T14:22:18.383433Z",
+      "excerpt": "That test is just wrong, the `Host` header should only contain ASCII. Hostnames cannot have underscores. That needs to be reported as a bug to Docker Compose, regardless of if we change anything in Werkzeug."
+    },
+    "comment-4118235752": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by ThiefMaster",
+      "url": "https://github.com/pallets/flask/issues/5961#issuecomment-4118235752",
+      "author": {
+        "id": "github:ThiefMaster",
+        "display_name": "ThiefMaster"
+      },
+      "created_at": "2026-03-24T13:20:19Z",
+      "content_hash": "sha256:d5eccda392c0d8f00f1bf9652e3a8c895f873f2af035a264d4c652b4f46ebd16",
+      "retrieved_at": "2026-07-10T14:22:18.383433Z",
+      "excerpt": "Looks like it's been reported, I found multiple issues related to this, some older than a decade... https://github.com/docker/compose/issues/229 So maybe by now they also offer dashed alternatives you can use? (I honestly didn't read through the whole issue)"
+    },
+    "comment-4118450512": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by davidism",
+      "url": "https://github.com/pallets/flask/issues/5961#issuecomment-4118450512",
+      "author": {
+        "id": "github:davidism",
+        "display_name": "davidism"
+      },
+      "created_at": "2026-03-24T13:46:34Z",
+      "content_hash": "sha256:8435593de14621970246f77f9fac00b607fe950fa5a5835703c28061c1932c88",
+      "retrieved_at": "2026-07-10T14:22:18.383433Z",
+      "excerpt": "Seems that issue was fixed in late 2021 and compose v2 uses dashes instead of underscores."
+    },
+    "pr-5962": {
+      "system": "github",
+      "type": "pull_request",
+      "title": "PR #5962: remove unicode host test",
+      "url": "https://github.com/pallets/flask/pull/5962",
+      "author": {
+        "id": "github:davidism",
+        "display_name": "davidism"
+      },
+      "created_at": "2026-03-24T13:54:00Z",
+      "updated_at": "2026-04-08T00:18:11Z",
+      "content_hash": "sha256:dcbc9ee793e4fca74f570dc9709df92c8f74cc955872cf5c53f421b0d836def4",
+      "retrieved_at": "2026-07-10T14:22:18.383433Z",
+      "excerpt": "This test is invalid, the `Host` header cannot contain non-ASCII. It was added in https://github.com/pallets/flask/pull/2994. It appears there was some confusion over Python 2/3 handling of strings, rather than testing this because it was a valid `Host` header. closes #5961"
+    }
+  },
+  "coverage": {
+    "truncated": false,
+    "sources_considered": 14,
+    "sources_included": 6,
+    "streams": [
+      {
+        "kind": "comments",
+        "available": 4,
+        "retrieved": 4,
+        "represented": 4,
+        "fetch_limit": 200
+      },
+      {
+        "kind": "timeline",
+        "available": null,
+        "retrieved": 8,
+        "represented": 7,
+        "fetch_limit": 200
+      }
+    ]
+  }
+}

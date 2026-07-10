@@ -1,0 +1,584 @@
+{
+  "ucp_version": "0.1.0",
+  "id": "urn:uuid:3e8f6214-f246-4220-ba74-4bef96ac1312",
+  "generated_at": "2026-07-10T14:22:00.982603Z",
+  "generator": {
+    "name": "ucp-gen",
+    "version": "0.3.2",
+    "url": "https://github.com/ucpcore/ucp"
+  },
+  "profiles": [
+    "ucp-core"
+  ],
+  "entity": {
+    "ref": {
+      "system": "github",
+      "type": "issue",
+      "id": "microsoft/vscode#519",
+      "url": "https://github.com/microsoft/vscode/issues/519"
+    },
+    "title": "Allow to change the font size and font of the workbench",
+    "status": "open"
+  },
+  "summary": {
+    "text": "At the moment, we can only change the font size / font of the editor. If we want to change the font size, we need to use a roundabout method of \"zooming in / out\". It would be nice if this could be adjusted through the preferences.",
+    "sources": [
+      "issue"
+    ]
+  },
+  "must_know": [
+    {
+      "id": "state",
+      "text": "Issue is open",
+      "salience": 0.95,
+      "salience_method": "producer",
+      "sources": [
+        "issue"
+      ],
+      "kind": "status",
+      "asserted_at": "2026-07-10T04:49:42Z"
+    },
+    {
+      "id": "assignees",
+      "text": "Nobody is assigned",
+      "salience": 0.6,
+      "salience_method": "producer",
+      "sources": [
+        "issue"
+      ],
+      "kind": "fact"
+    },
+    {
+      "id": "milestone",
+      "text": "Milestone: On Deck",
+      "salience": 0.8,
+      "salience_method": "producer",
+      "sources": [
+        "issue"
+      ],
+      "kind": "constraint"
+    },
+    {
+      "id": "labels",
+      "text": "Labels: feature-request, workbench-fonts",
+      "salience": 0.65,
+      "salience_method": "producer",
+      "sources": [
+        "issue"
+      ],
+      "kind": "fact"
+    },
+    {
+      "id": "comment-572161405-gist",
+      "text": "chaddanna: This isn't really an on topic discussion. I've been following this issue for many years now and it seems like the only purpose it serves is for people to workout their frustrations and opinions with others. There's just a ton of noise and no positive updates. If you want to move…",
+      "salience": 0.55,
+      "salience_method": "producer",
+      "sources": [
+        "comment-572161405"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-08T16:59:16Z"
+    },
+    {
+      "id": "comment-572159704-gist",
+      "text": "shirshak55: Sublime is quite old No it was first released on January 18, 2008 which is not too old only 7 years older than vscode. \"But hardware and browser performance have improved a lot\" But as a general purpose editor it should always be performant. When u run linters, type hints it…",
+      "salience": 0.5,
+      "salience_method": "producer",
+      "sources": [
+        "comment-572159704"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-08T16:55:11Z"
+    },
+    {
+      "id": "comment-572122782-gist",
+      "text": "realh: Sublime is quite old. In its prime, something like Atom or VS Code might not have even been possible, for additional reasons besides performance. But hardware and browser performance have improved a lot, so that now VS Code probably runs at least as smoothly as an equivalent…",
+      "salience": 0.45000000000000007,
+      "salience_method": "producer",
+      "sources": [
+        "comment-572122782"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-08T15:32:34Z"
+    },
+    {
+      "id": "comment-571883538-gist",
+      "text": "shirshak55: @realh I think you are completely wrong. Why do you think sublime text is soooo faster than vs code? JS dynamic typing has too much cost thats why asm is getting so much popular. And FYI I don't think atom devs are working on rust backend. If they had atom would be so different…",
+      "salience": 0.4,
+      "salience_method": "producer",
+      "sources": [
+        "comment-571883538"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-08T04:11:45Z"
+    },
+    {
+      "id": "comment-571768556-gist",
+      "text": "realh: I haven't tried Atom for a long while, but every time I've compared it with VS Code, I prefer Code. Apparently Atom's developers are busy rewriting it from scratch with a Rust backend instead of node. I think this is a mistake, because node with a decent frontend to JS (TS being…",
+      "salience": 0.35000000000000003,
+      "salience_method": "producer",
+      "sources": [
+        "comment-571768556"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-07T20:55:38Z"
+    },
+    {
+      "id": "comment-571712223-gist",
+      "text": "betovelandia: Did you guys expect something different when MS bought Github? I agree with @jerch other IDEs have what we need, it is time to go back to Atom and remember that its development was halted for this IDE one that still holds the name of one of the most bloated pieces of malware…",
+      "salience": 0.30000000000000004,
+      "salience_method": "producer",
+      "sources": [
+        "comment-571712223"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-07T18:30:09Z"
+    },
+    {
+      "id": "comment-571375855-gist",
+      "text": "Iainmon: Please add this",
+      "salience": 0.25,
+      "salience_method": "producer",
+      "sources": [
+        "comment-571375855"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-07T00:26:41Z"
+    },
+    {
+      "id": "comment-571089234-gist",
+      "text": "ghosTM55: Please add this feature thanks",
+      "salience": 0.2,
+      "salience_method": "producer",
+      "sources": [
+        "comment-571089234"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-06T10:35:08Z"
+    },
+    {
+      "id": "comment-570836432-gist",
+      "text": "benlavender: Definitely a wanted feature!",
+      "salience": 0.2,
+      "salience_method": "producer",
+      "sources": [
+        "comment-570836432"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-05T01:50:30Z"
+    },
+    {
+      "id": "comment-570159937-gist",
+      "text": "huarse: The feature was proposed in 2015, and it's 2020 now ... 🙄",
+      "salience": 0.2,
+      "salience_method": "producer",
+      "sources": [
+        "comment-570159937"
+      ],
+      "kind": "fact",
+      "asserted_at": "2020-01-02T09:50:36Z"
+    }
+  ],
+  "decisions": [],
+  "history": [
+    {
+      "occurred_at": "2018-10-23T15:26:06Z",
+      "summary": "hawkgs commented",
+      "actor": {
+        "id": "github:hawkgs",
+        "display_name": "hawkgs"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-10-31T11:33:15Z",
+      "summary": "shirshak55 commented",
+      "actor": {
+        "id": "github:shirshak55",
+        "display_name": "shirshak55"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-01T18:02:10Z",
+      "summary": "AJB99 commented",
+      "actor": {
+        "id": "github:AJB99",
+        "display_name": "AJB99"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-01T20:24:07Z",
+      "summary": "robsonsobral commented",
+      "actor": {
+        "id": "github:robsonsobral",
+        "display_name": "robsonsobral"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-01T21:30:10Z",
+      "summary": "al2me6 commented",
+      "actor": {
+        "id": "github:al2me6",
+        "display_name": "al2me6"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-02T02:13:32Z",
+      "summary": "robsonsobral commented",
+      "actor": {
+        "id": "github:robsonsobral",
+        "display_name": "robsonsobral"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-02T05:42:23Z",
+      "summary": "shirshak55 commented",
+      "actor": {
+        "id": "github:shirshak55",
+        "display_name": "shirshak55"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-02T12:20:11Z",
+      "summary": "knopp commented",
+      "actor": {
+        "id": "github:knopp",
+        "display_name": "knopp"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-02T21:07:34Z",
+      "summary": "robsonsobral commented",
+      "actor": {
+        "id": "github:robsonsobral",
+        "display_name": "robsonsobral"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-03T07:15:45Z",
+      "summary": "dougc84 commented",
+      "actor": {
+        "id": "github:dougc84",
+        "display_name": "dougc84"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-05T09:17:15Z",
+      "summary": "AJB99 commented",
+      "actor": {
+        "id": "github:AJB99",
+        "display_name": "AJB99"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-05T17:49:52Z",
+      "summary": "austinbutler commented",
+      "actor": {
+        "id": "github:austinbutler",
+        "display_name": "austinbutler"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-06T04:34:30Z",
+      "summary": "AJB99 commented",
+      "actor": {
+        "id": "github:AJB99",
+        "display_name": "AJB99"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-06T07:53:01Z",
+      "summary": "dougc84 commented",
+      "actor": {
+        "id": "github:dougc84",
+        "display_name": "dougc84"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-06T10:59:35Z",
+      "summary": "AJB99 commented",
+      "actor": {
+        "id": "github:AJB99",
+        "display_name": "AJB99"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-07T03:58:26Z",
+      "summary": "sgarcia-dev commented",
+      "actor": {
+        "id": "github:sgarcia-dev",
+        "display_name": "sgarcia-dev"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-07T08:58:47Z",
+      "summary": "tommiv commented",
+      "actor": {
+        "id": "github:tommiv",
+        "display_name": "tommiv"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-07T13:56:57Z",
+      "summary": "panoply commented",
+      "actor": {
+        "id": "github:panoply",
+        "display_name": "panoply"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-07T14:27:53Z",
+      "summary": "shirshak55 commented",
+      "actor": {
+        "id": "github:shirshak55",
+        "display_name": "shirshak55"
+      },
+      "sources": [
+        "issue"
+      ]
+    },
+    {
+      "occurred_at": "2018-11-07T14:34:20Z",
+      "summary": "niagr commented",
+      "actor": {
+        "id": "github:niagr",
+        "display_name": "niagr"
+      },
+      "sources": [
+        "issue"
+      ]
+    }
+  ],
+  "related_objects": [],
+  "sources": {
+    "issue": {
+      "system": "github",
+      "type": "ticket",
+      "title": "microsoft/vscode#519: Allow to change the font size and font of the workbench",
+      "url": "https://github.com/microsoft/vscode/issues/519",
+      "author": {
+        "id": "github:hsdk123",
+        "display_name": "hsdk123"
+      },
+      "created_at": "2015-11-24T00:52:13Z",
+      "updated_at": "2026-07-10T04:49:42Z",
+      "content_hash": "sha256:2eb4caf9f964b46be66854cdcf528c10ab2b0a24ce7489b9d7f63cbc75437d00",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "At the moment, we can only change the font size / font of the editor. If we want to change the font size, we need to use a roundabout method of \"zooming in / out\". It would be nice if this could be adjusted through the preferences."
+    },
+    "comment-570159937": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by huarse",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-570159937",
+      "author": {
+        "id": "github:huarse",
+        "display_name": "huarse"
+      },
+      "created_at": "2020-01-02T09:50:36Z",
+      "content_hash": "sha256:57d6d15be0ea8adc233324b381ea49fb776c81c2e3f4317e2e829d6b1d0f4d03",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "The feature was proposed in 2015, and it's 2020 now ... 🙄"
+    },
+    "comment-570836432": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by benlavender",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-570836432",
+      "author": {
+        "id": "github:benlavender",
+        "display_name": "benlavender"
+      },
+      "created_at": "2020-01-05T01:50:30Z",
+      "content_hash": "sha256:8e46fdf5dec5f2efa2e4799680e3e5be4c7754a7dcab6e702f7934a7f6c9d4de",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "Definitely a wanted feature!"
+    },
+    "comment-571089234": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by ghosTM55",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-571089234",
+      "author": {
+        "id": "github:ghosTM55",
+        "display_name": "ghosTM55"
+      },
+      "created_at": "2020-01-06T10:35:08Z",
+      "content_hash": "sha256:28a0810059aa848eb96706d9cd8e01fbb9016326a465e30ba4276f8843e54593",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "Please add this feature thanks"
+    },
+    "comment-571375855": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by Iainmon",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-571375855",
+      "author": {
+        "id": "github:Iainmon",
+        "display_name": "Iainmon"
+      },
+      "created_at": "2020-01-07T00:26:41Z",
+      "content_hash": "sha256:29ef3b8c60e981dc4ea89236fac2cd4639cc245a1659d7443274a9fa5823328a",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "Please add this"
+    },
+    "comment-571712223": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by betovelandia",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-571712223",
+      "author": {
+        "id": "github:betovelandia",
+        "display_name": "betovelandia"
+      },
+      "created_at": "2020-01-07T18:30:09Z",
+      "content_hash": "sha256:a77352620586db24517040feb4b050c5a4e2842cc8d43bf5ccaf7fff5cb21436",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "Did you guys expect something different when MS bought Github? I agree with @jerch other IDEs have what we need, it is time to go back to Atom and remember that its development was halted for this IDE one that still holds the name of one of the most bloated pieces of malware…"
+    },
+    "comment-571768556": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by realh",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-571768556",
+      "author": {
+        "id": "github:realh",
+        "display_name": "realh"
+      },
+      "created_at": "2020-01-07T20:55:38Z",
+      "content_hash": "sha256:28ab601dfa77f1d24020f69d2df8b89581f4f5612ee2aca6678391eb56b82866",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "I haven't tried Atom for a long while, but every time I've compared it with VS Code, I prefer Code. Apparently Atom's developers are busy rewriting it from scratch with a Rust backend instead of node. I think this is a mistake, because node with a decent frontend to JS (TS being…"
+    },
+    "comment-571883538": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by shirshak55",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-571883538",
+      "author": {
+        "id": "github:shirshak55",
+        "display_name": "shirshak55"
+      },
+      "created_at": "2020-01-08T04:11:45Z",
+      "content_hash": "sha256:fa8d8181a1e17290a2ca5acfc14c009c56b92da18e1d3685b9ece35436a02089",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "@realh I think you are completely wrong. Why do you think sublime text is soooo faster than vs code? JS dynamic typing has too much cost thats why asm is getting so much popular. And FYI I don't think atom devs are working on rust backend. If they had atom would be so different…"
+    },
+    "comment-572122782": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by realh",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-572122782",
+      "author": {
+        "id": "github:realh",
+        "display_name": "realh"
+      },
+      "created_at": "2020-01-08T15:32:34Z",
+      "content_hash": "sha256:b04b9c855f65809b78313f2e0e4881f440cc99d87ab44688c43213a83bea6fe2",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "Sublime is quite old. In its prime, something like Atom or VS Code might not have even been possible, for additional reasons besides performance. But hardware and browser performance have improved a lot, so that now VS Code probably runs at least as smoothly as an equivalent…"
+    },
+    "comment-572159704": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by shirshak55",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-572159704",
+      "author": {
+        "id": "github:shirshak55",
+        "display_name": "shirshak55"
+      },
+      "created_at": "2020-01-08T16:55:11Z",
+      "content_hash": "sha256:c8c4999a4f3acefa6c01306b2dfdcc1e76a0f6f1169319e364813005ebcb9585",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "Sublime is quite old No it was first released on January 18, 2008 which is not too old only 7 years older than vscode. \"But hardware and browser performance have improved a lot\" But as a general purpose editor it should always be performant. When u run linters, type hints it…"
+    },
+    "comment-572161405": {
+      "system": "github",
+      "type": "comment",
+      "title": "Comment by chaddanna",
+      "url": "https://github.com/microsoft/vscode/issues/519#issuecomment-572161405",
+      "author": {
+        "id": "github:chaddanna",
+        "display_name": "chaddanna"
+      },
+      "created_at": "2020-01-08T16:59:16Z",
+      "content_hash": "sha256:219c01c3e37fa17b67ab4d5ee7b4fac485c9f534c1c65fc767433150f1fda791",
+      "retrieved_at": "2026-07-10T14:22:00.982603Z",
+      "excerpt": "This isn't really an on topic discussion. I've been following this issue for many years now and it seems like the only purpose it serves is for people to workout their frustrations and opinions with others. There's just a ton of noise and no positive updates. If you want to move…"
+    }
+  },
+  "coverage": {
+    "truncated": true,
+    "sources_considered": 797,
+    "sources_included": 11,
+    "streams": [
+      {
+        "kind": "comments",
+        "available": 596,
+        "retrieved": 200,
+        "represented": 10,
+        "fetch_limit": 200
+      },
+      {
+        "kind": "timeline",
+        "available": null,
+        "retrieved": 200,
+        "represented": 20,
+        "fetch_limit": 200
+      }
+    ]
+  }
+}

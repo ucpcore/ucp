@@ -12,7 +12,7 @@
 <meta property="og:site_name" content="ucpcore.org">
 <meta name="twitter:card" content="summary">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='SF Mono,Menlo,monospace' font-size='15' font-weight='700' fill='%234cc38a' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/site.css?v=4">
+<link rel="stylesheet" href="/assets/site.css?v=6">
 </head>
 <body>
 
@@ -20,6 +20,7 @@
   <div class="wrap nav">
     <a class="brand" href="/"><span class="mark">{ }</span> UCP</a>
     <nav class="nav-links" aria-label="Main">
+      <a href="/try/">Try</a>
       <a href="/quickstart/">Quickstart</a>
       <a href="/mcp/">MCP</a>
       <a href="/spec/">Spec</a>
@@ -38,7 +39,8 @@
         into a small, verifiable package your agent can load: facts, decisions,
         conflicts, hashed sources.</p>
         <div class="cta-row">
-          <a class="btn btn-primary" href="/quickstart/">Run the server</a>
+          <a class="btn btn-primary" href="/try/">Try in browser</a>
+          <a class="btn btn-secondary" href="/quickstart/">Run the server</a>
           <a class="btn btn-secondary" href="/spec/">Read the spec</a>
         </div>
       </div>
@@ -217,17 +219,17 @@
               <div class="receipt-claim">
                 <span class="receipt-claim-id">mk-1</span>
                 <span class="receipt-claim-text">HMAC-SHA256 required for webhooks</span>
-                <span class="receipt-salience-val">.82</span>
+                <span class="receipt-salience-val" title="salience · salience_method">.82 <span class="dim">· graph</span></span>
               </div>
               <div class="receipt-claim">
                 <span class="receipt-claim-id">mk-2</span>
                 <span class="receipt-claim-text">Redis idempotency keys (team debate)</span>
-                <span class="receipt-salience-val">.71</span>
+                <span class="receipt-salience-val" title="salience · salience_method">.71 <span class="dim">· producer</span></span>
               </div>
               <div class="receipt-claim">
                 <span class="receipt-claim-id">mk-3</span>
                 <span class="receipt-claim-text">Legacy v1 keys sunset Aug 1</span>
-                <span class="receipt-salience-val">.65</span>
+                <span class="receipt-salience-val" title="salience · salience_method">.65 <span class="dim">· recency</span></span>
               </div>
             </div>
             <div class="receipt-outcomes" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
@@ -373,14 +375,18 @@
 <span class="b">}</span></div>
       <p class="schema-note">A canonical rendering algorithm turns any package into
       a deterministic prompt. Under a token budget, <code>salience</code> defines
-      the truncation order: noise drops first, the core survives. A claim without
-      sources is schema-invalid.</p>
+      the truncation order (each claim MAY carry <code>salience_method</code>:
+      <code>producer</code>, <code>graph</code>, <code>ranking</code>, or <code>llm</code>).
+      Sources carry <code>content_hash</code> (sha256); consumers revalidate with
+      <code>since</code> + <code>context_diff</code> when the upstream changes.
+      A claim without sources is schema-invalid.</p>
     </div>
   </section>
 </main>
 
 <footer>
   <div class="wrap foot">
+    <a href="/try/">Try</a>
     <a href="/quickstart/">Quickstart</a>
     <a href="/mcp/">MCP</a>
     <a href="/spec/">Spec</a>
