@@ -1,11 +1,12 @@
 {
   "ucp_version": "0.1.0",
-  "id": "urn:uuid:b1d000ec-5146-4518-8701-6ca0d2609a64",
-  "generated_at": "2026-07-10T14:22:20.555333Z",
+  "id": "urn:uuid:3c28ea1c-2565-43a2-8ddc-73ea62d0f35d",
+  "generated_at": "2026-07-10T18:21:21.191330Z",
   "generator": {
     "name": "ucp-gen",
     "version": "0.3.2",
-    "url": "https://github.com/ucpcore/ucp"
+    "url": "https://github.com/ucpcore/ucp",
+    "llm_model": "qwen2.5:1.5b"
   },
   "profiles": [
     "ucp-core"
@@ -25,10 +26,11 @@
     }
   },
   "summary": {
-    "text": "Thank you for filing a bug report! 🐛 Please provide a short summary of the bug, along with any information you feel relevant to replicating the bug. -->",
+    "text": "The Rust compiler is miscompiling a loop that uses the `znver4` target, specifically in TFHE-rs project code. The issue occurs when using `-C target-cpu=znver4` with Rust version 1.95 and above.",
     "sources": [
       "issue"
-    ]
+    ],
+    "confidence": 0.7
   },
   "must_know": [
     {
@@ -447,7 +449,7 @@
       "created_at": "2026-06-30T17:37:16Z",
       "updated_at": "2026-07-05T20:18:56Z",
       "content_hash": "sha256:98452991c9b15e4f9baf5156509e8c4b38033cdcb6f422e4e4270b42eb22f99e",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "<!-- Thank you for filing a bug report! 🐛 Please provide a short summary of the bug, along with any information you feel relevant to replicating the bug. --> It looks like a maths heavy loop is getting miscompiled when using the znver4 target (or znver5) znver3 is ok. function…"
     },
     "comment-4846679247": {
@@ -461,7 +463,7 @@
       },
       "created_at": "2026-06-30T18:19:48Z",
       "content_hash": "sha256:2b659105227e4eb1321bb8716346ece25f331e4a7950f1874938fcfa96b7d0ac",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "Thanks for confirming that!"
     },
     "comment-4846735098": {
@@ -475,7 +477,7 @@
       },
       "created_at": "2026-06-30T18:26:51Z",
       "content_hash": "sha256:3bc7a7d2d2a9053ea04f922cdd94bba5d41a53077740a30150c1afe8d01b8199",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "@IceTDrinker Can you test if the miscompilation occurs if you enable most or all of the features that are in znver4, without specifying `-Ctarget-cpu`? That involves at least `-Ctarget-feature=+avx512vbmi2,+avx512vl`, and probably other features as well. The list is here:…"
     },
     "comment-4846983210": {
@@ -489,7 +491,7 @@
       },
       "created_at": "2026-06-30T18:57:49Z",
       "content_hash": "sha256:e5b9d4ed01c68f0ea2641948230ed4f53379d8fb69665897561ac754b7f45e35",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "> @IceTDrinker Can you test if the miscompilation occurs if you enable most or all of the features that are in znver4, without specifying `-Ctarget-cpu`? That involves at least `-Ctarget-feature=+avx512vbmi2,+avx512vl`, and probably other features as well. > > The list is here:…"
     },
     "comment-4847063204": {
@@ -503,7 +505,7 @@
       },
       "created_at": "2026-06-30T19:07:59Z",
       "content_hash": "sha256:fd8d081a1e28dfff281554068be7219e844fa50214cdc2b2a0c9fb92eb34405d",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "If you just enable all the relevant features and it still miscompiles, then that's information enough that it doesn't depend on LLVM's CPU-specific tunings, but is instead something to do with the features. Any narrowing it down to feature subsets is purely a bonus. Thanks for…"
     },
     "comment-4847170501": {
@@ -517,7 +519,7 @@
       },
       "created_at": "2026-06-30T19:22:18Z",
       "content_hash": "sha256:0610b5eeef7d97e5542f4d71f57aaf9c5c75368f3998501c1619e09d8be54f3c",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "Got it, I thought target CPU were mostly feature sets enablements, will report back tomorrow (will start with complete feature set of znver4, subsets might be illusory given how many features there seems to be)"
     },
     "comment-4847228552": {
@@ -531,7 +533,7 @@
       },
       "created_at": "2026-06-30T19:29:40Z",
       "content_hash": "sha256:213c44c8aa0a8c6343520af8bf4925bb35cc548a269e8b0705a1cafe01161c95",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "\"mostly\" is indeed correct, which is why it is desirable to distinguish whether it is one of the things that fall under \"mostly\" or not."
     },
     "comment-4851397099": {
@@ -545,7 +547,7 @@
       },
       "created_at": "2026-07-01T07:17:11Z",
       "content_hash": "sha256:1acfc2631bb78102d6e96a721aebc13918b7c6868bc9bc1b90cd3d3159797c28",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "I had a go at minimizing it. Seems like `-Ctarget-feature=+avx512dq,+avx512vl` is the minimal set of features needed. Additionally, it seems like the array's len also has to be at least 16, otherwise it won't get vectorized, and the miscompilation happens only at `a[i]` where `i…"
     },
     "comment-4853610825": {
@@ -559,7 +561,7 @@
       },
       "created_at": "2026-07-01T10:59:18Z",
       "content_hash": "sha256:91192421a97d2dd5959f68cfa1bdfda65353096afdb8507916df2d066566e8cb",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "can confirm the target-feature set you found still trigger on my end for the code I ended up with yesterady, thanks a lot for minimizing @sjwang05 🙏"
     },
     "comment-4855090934": {
@@ -573,7 +575,7 @@
       },
       "created_at": "2026-07-01T12:54:57Z",
       "content_hash": "sha256:c954742107f36980bf64b98b44628c65d9e1fcee84edd026401d8d6050e31583",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "Looks like this is a bug in X86CompressEVEX that was fixed in https://github.com/llvm/llvm-project/pull/198220."
     },
     "comment-4887463963": {
@@ -587,7 +589,7 @@
       },
       "created_at": "2026-07-05T20:18:56Z",
       "content_hash": "sha256:1d83560be5e4c88fac97304b8368f2d0ac3ebc8ba589790ed755b94d797b859a",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "Thanks for taking care of this so quickly!"
     },
     "pr-158658": {
@@ -602,7 +604,7 @@
       "created_at": "2026-07-01T13:11:56Z",
       "updated_at": "2026-07-05T10:54:43Z",
       "content_hash": "sha256:75e22ef2f3f0e4119b83f66021a82c124ff1b3df4c46e51e0598085b7010ba26",
-      "retrieved_at": "2026-07-10T14:22:20.555333Z",
+      "retrieved_at": "2026-07-10T18:21:21.191330Z",
       "excerpt": "Backport of https://github.com/llvm/llvm-project/commit/f0fc9d0abf7024ceb5cb827b16f02c10e54fe0fd. Fixes https://github.com/rust-lang/rust/issues/158622."
     }
   },

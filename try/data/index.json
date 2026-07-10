@@ -1,6 +1,6 @@
 {
   "demo_api": "https://demo.ucpcore.org/v1/demo/generate",
-  "structural_note": "Curated JSON below is an instant structural preview (first paragraph as summary). Check Enhance with AI for a real thread digest.",
+  "structural_note": "Curated chips load pre-generated packages (flask/rust: AI-enhanced; vscode: structural preview). Toggle Enhance with AI on any chip for a live digest from demo API.",
   "examples": [
     {
       "ref": "microsoft/vscode#519",
@@ -18,9 +18,9 @@
       "hint": "compiler ICE thread",
       "file": "rust-lang-rust-158622.ucp.json",
       "raw_tokens": 4464,
-      "ucp_tokens": 1398,
+      "ucp_tokens": 1409,
       "comments": "13",
-      "structural_only": true
+      "structural_only": false
     },
     {
       "ref": "pallets/flask#5961",
@@ -28,9 +28,9 @@
       "hint": "small bug report",
       "file": "pallets-flask-5961.ucp.json",
       "raw_tokens": 808,
-      "ucp_tokens": 713,
+      "ucp_tokens": 714,
       "comments": "4",
-      "structural_only": true
+      "structural_only": false
     }
   ]
 }
