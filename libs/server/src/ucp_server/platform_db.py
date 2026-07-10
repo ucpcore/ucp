@@ -15,10 +15,21 @@ class Base(DeclarativeBase):
     pass
 
 
+class TenantRow(Base):
+    __tablename__ = "platform_tenants"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    slug: Mapped[str] = mapped_column(String(63), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(16), default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class PersonalTokenRow(Base):
     __tablename__ = "platform_personal_tokens"
 
     id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(16), index=True, nullable=True)
     name: Mapped[str] = mapped_column(String(120), index=True)
     user_id: Mapped[Optional[str]] = mapped_column(String(16), index=True, nullable=True)
     client_label: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
@@ -58,7 +69,8 @@ class ConnectorCredentialRow(Base):
     __tablename__ = "platform_connector_credentials"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    provider: Mapped[str] = mapped_column(String(32), unique=True)
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(16), index=True, nullable=True)
+    provider: Mapped[str] = mapped_column(String(32), index=True)
     access_token: Mapped[str] = mapped_column(Text)
     refresh_token: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -79,13 +91,15 @@ class InviteRow(Base):
     redeemed_token_id: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
     redeemed_user_id: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
     revoked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(16), index=True, nullable=True)
 
 
 class UserRow(Base):
     __tablename__ = "platform_users"
 
     id: Mapped[str] = mapped_column(String(16), primary_key=True)
-    email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(16), index=True, nullable=True)
+    email: Mapped[str] = mapped_column(String(254), index=True)
     password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str] = mapped_column(String(120))
     role: Mapped[str] = mapped_column(String(16), default="member")
@@ -100,6 +114,7 @@ class WebhookEndpointRow(Base):
     __tablename__ = "platform_webhook_endpoints"
 
     id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    tenant_id: Mapped[Optional[str]] = mapped_column(String(16), index=True, nullable=True)
     user_id: Mapped[str] = mapped_column(String(16), index=True)
     source: Mapped[str] = mapped_column(String(16), index=True)
     label: Mapped[str] = mapped_column(String(120))
@@ -120,8 +135,41 @@ def bind_database(database_url: str) -> sessionmaker:
     _engine = create_engine(database_url, pool_pre_ping=True)
     Base.metadata.create_all(_engine)
     _ensure_personal_token_columns(_engine)
+    _ensure_tenant_columns(_engine)
     _Session = sessionmaker(bind=_engine, expire_on_commit=False)
     return _Session
+
+
+def _ensure_tenant_columns(engine) -> None:
+    """Additive migration for multi-tenant platform tables."""
+    stmts = (
+        "CREATE TABLE IF NOT EXISTS platform_tenants ("
+        "id VARCHAR(16) PRIMARY KEY, "
+        "slug VARCHAR(63) NOT NULL UNIQUE, "
+        "name VARCHAR(120) NOT NULL, "
+        "status VARCHAR(16) NOT NULL DEFAULT 'active', "
+        "created_at TIMESTAMPTZ NOT NULL"
+        ")",
+        "CREATE INDEX IF NOT EXISTS ix_platform_tenants_slug ON platform_tenants (slug)",
+        "ALTER TABLE platform_personal_tokens ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(16)",
+        "ALTER TABLE platform_users ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(16)",
+        "ALTER TABLE platform_webhook_endpoints ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(16)",
+        "CREATE INDEX IF NOT EXISTS ix_platform_personal_tokens_tenant_id ON platform_personal_tokens (tenant_id)",
+        "CREATE INDEX IF NOT EXISTS ix_platform_users_tenant_id ON platform_users (tenant_id)",
+        "CREATE INDEX IF NOT EXISTS ix_platform_webhook_endpoints_tenant_id ON platform_webhook_endpoints (tenant_id)",
+        "ALTER TABLE platform_connector_credentials ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(16)",
+        "CREATE INDEX IF NOT EXISTS ix_platform_connector_credentials_tenant_id ON platform_connector_credentials (tenant_id)",
+        "ALTER TABLE platform_connector_credentials DROP CONSTRAINT IF EXISTS platform_connector_credentials_provider_key",
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_platform_connector_tenant_provider "
+        "ON platform_connector_credentials (COALESCE(tenant_id, ''), provider)",
+        # Drop global unique email when migrating — replace with per-tenant uniqueness later.
+        "CREATE INDEX IF NOT EXISTS ix_platform_users_email ON platform_users (email)",
+        "ALTER TABLE platform_invites ADD COLUMN IF NOT EXISTS tenant_id VARCHAR(16)",
+        "CREATE INDEX IF NOT EXISTS ix_platform_invites_tenant_id ON platform_invites (tenant_id)",
+    )
+    with engine.begin() as conn:
+        for stmt in stmts:
+            conn.execute(text(stmt))
 
 
 def _ensure_personal_token_columns(engine) -> None:

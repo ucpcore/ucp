@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import html
 
+from .brand import LOGO_SVG, PRODUCT_NAME
+
 
 def render_mcp_consent_page(
     *,
@@ -29,7 +31,7 @@ def render_mcp_consent_page(
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Approve MCP access — Context OS</title>
+  <title>Approve MCP access — {PRODUCT_NAME}</title>
   <style>
     * {{ box-sizing: border-box; }}
     body {{
@@ -58,8 +60,8 @@ def render_mcp_consent_page(
     .brand-mark {{
       width: 1.5rem;
       height: 1.5rem;
-      border-radius: 0.35rem;
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #0f172a;
+      display: inline-flex;
     }}
     main {{
       flex: 1;
@@ -159,14 +161,14 @@ def render_mcp_consent_page(
 </head>
 <body>
   <header class="topbar">
-    <div class="brand"><span class="brand-mark" aria-hidden="true"></span> CONTEXT OS</div>
+    <div class="brand"><span class="brand-mark" aria-hidden="true">{LOGO_SVG}</span> {PRODUCT_NAME.upper()}</div>
   </header>
   <main>
     <div class="panel">
-      <h1>Approve Client Authorization via Context OS MCP</h1>
+      <h1>Approve Client Authorization via {PRODUCT_NAME} MCP</h1>
       <p class="lead">
         <strong>{client_label}</strong> is requesting authorization to access and act upon
-        resources on your behalf via the Context OS MCP server.
+        resources on your behalf via the {PRODUCT_NAME} MCP server.
         Approving this request will redirect you back to the client.
       </p>
       <div class="card">
@@ -209,7 +211,7 @@ def render_mcp_consent_cancelled(*, client_name: str) -> str:
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Authorization cancelled — Context OS</title>
+  <title>Authorization cancelled — {PRODUCT_NAME}</title>
   <style>
     body {{
       margin: 0;

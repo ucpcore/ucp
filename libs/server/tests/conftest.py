@@ -68,6 +68,8 @@ def make_settings(tmp_path, **overrides) -> Settings:
         UCP_CACHE_DIR=str(tmp_path / "cache"),
         UCP_CACHE_TTL=900,
         UCP_SERVER_HOST="127.0.0.1",
+        UCP_SESSION_SECRET="test-session-secret",
+        UCP_SERVER_API_KEY="test-api-key",
     )
     defaults.update(overrides)
     return Settings(**defaults)

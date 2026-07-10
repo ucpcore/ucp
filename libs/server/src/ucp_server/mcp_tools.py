@@ -116,7 +116,11 @@ def build_mcp(
         audience = principal if auth is not None and not auth.is_service else None
         try:
             entry_id, package, cached = service.generate(
-                source, ref, llm=llm, audience=audience
+                source,
+                ref,
+                llm=llm,
+                audience=audience,
+                principal=principal if principal != SERVICE_PRINCIPAL else None,
             )
         except (InvalidRefError, SourceError) as exc:
             return f"Error: {exc}"

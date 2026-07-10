@@ -20,6 +20,7 @@ from .hosted_view import (
     render_hosted_landing,
     render_local_landing,
 )
+from .tenant_resolve import build_setup_for_request, resolve_tenant_slug
 from .tenant import TenantPathMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from pydantic import BaseModel, Field
@@ -44,6 +45,12 @@ from .access_audit import get_access_audit_store
 from .usage_store import get_usage_store
 from .billing_store import get_billing_store
 from .oauth import build_oauth_router
+from .connector_config import list_connectors, update_scope, CONNECTOR_SPECS
+from .connector_resources import list_connector_resources
+from .indexing_status import get_indexing_status
+from .demo_context import build_demo_context
+from .demo_generate import generate_demo_package
+from .demo_rate_limit import DemoRateLimiter
 from .mcp_oauth import build_mcp_oauth_router
 from .invite_store import (
     DEFAULT_SCOPES,
@@ -51,8 +58,20 @@ from .invite_store import (
     invite_dashboard_url,
 )
 from .portal_auth import build_portal_auth_router, get_portal_session, require_portal_session
+from .sidebar_auth import build_sidebar_auth_router, build_sidebar_setup
 from .portal_static import resolve_portal_dist
 from .user_store import get_user_store
+from .tenant_store import bootstrap_tenants, get_tenant_store
+
+
+class DemoGenerateRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    ref: str = Field(
+        min_length=3,
+        max_length=256,
+        description="Public GitHub issue: owner/repo#number",
+    )
 
 
 class GenerateRequest(BaseModel):
@@ -117,6 +136,12 @@ class MeCreateWebhookRequest(BaseModel):
 
     source: Literal["github", "jira", "confluence"]
     label: Optional[str] = Field(default=None, max_length=120)
+
+
+class MeUpdateConnectorScopeRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    scope: dict[str, Any] = Field(default_factory=dict)
 
 
 def _require_webhook_engine(settings: Settings) -> str:
@@ -201,32 +226,55 @@ def _can_issue_tokens(request: Request, settings: Settings) -> tuple[str, Option
 
 
 class _ExtensionCorsMiddleware(BaseHTTPMiddleware):
-    """CORS + Private Network Access for Chrome extension → localhost (Chrome 142+)."""
+    """CORS + Private Network Access for Chrome extension and ucpcore.org/try."""
 
     _ALLOW_HEADERS = "Authorization, Content-Type"
     _ALLOW_METHODS = "GET, POST, DELETE, OPTIONS"
 
     @staticmethod
-    def _allow_origin(request: Request) -> str:
+    def _demo_origin_allowed(request: Request) -> Optional[str]:
+        if not request.url.path.startswith("/v1/demo/"):
+            return None
+        settings = getattr(request.app.state, "settings", None)
+        if settings is None:
+            return None
         origin = request.headers.get("origin", "")
-        if origin.startswith("chrome-extension://"):
+        allowed = {
+            o.strip()
+            for o in (settings.demo_cors_origins or "").split(",")
+            if o.strip()
+        }
+        if origin in allowed:
             return origin
-        return "*"
+        return None
 
-    def _cors_headers(self, request: Request) -> dict[str, str]:
+    def _cors_headers(self, request: Request, *, force_origin: Optional[str] = None) -> dict[str, str]:
+        origin = force_origin or request.headers.get("origin", "")
+        if force_origin:
+            allow = force_origin
+        elif origin.startswith("chrome-extension://"):
+            allow = origin
+        else:
+            allow = "*"
         return {
-            "Access-Control-Allow-Origin": self._allow_origin(request),
+            "Access-Control-Allow-Origin": allow,
             "Access-Control-Allow-Methods": self._ALLOW_METHODS,
             "Access-Control-Allow-Headers": self._ALLOW_HEADERS,
             "Access-Control-Allow-Private-Network": "true",
         }
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:
+        demo_origin = self._demo_origin_allowed(request)
+        if request.method == "OPTIONS" and demo_origin:
+            return Response(status_code=204, headers=self._cors_headers(request, force_origin=demo_origin))
         if request.method == "OPTIONS":
             return Response(status_code=204, headers=self._cors_headers(request))
         response = await call_next(request)
         origin = request.headers.get("origin", "")
-        if origin.startswith("chrome-extension://") or request.headers.get(
+        if demo_origin:
+            for key, value in self._cors_headers(request, force_origin=demo_origin).items():
+                response.headers[key] = value
+        elif origin.startswith("chrome-extension://") or request.headers.get(
             "access-control-request-private-network"
         ):
             for key, value in self._cors_headers(request).items():
@@ -247,8 +295,62 @@ class _BodyLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class _RoleGateMiddleware(BaseHTTPMiddleware):
+    """Hide portal routes on API process and vice versa (split containers)."""
+
+    def __init__(self, app: Any, *, settings: Settings):
+        super().__init__(app)
+        self.settings = settings
+
+    async def dispatch(self, request: Request, call_next: Any) -> Response:
+        path = request.url.path
+        role = self.settings.server_role
+        if role == "api" and (
+            path.startswith("/dashboard") or path.startswith("/billing")
+        ):
+            return problem(
+                404,
+                "Portal Relocated",
+                "Portal UI is served on the app host (app.rangor.io).",
+                "portal-split",
+            )
+        if role == "portal" and (
+            path.startswith("/v1")
+            or path.startswith("/mcp")
+            or path == "/admin"
+            or path.startswith("/admin/")
+        ):
+            return problem(
+                404,
+                "API Relocated",
+                "API is served on the api host (api.rangor.io).",
+                "api-split",
+            )
+        return await call_next(request)
+
+
+def _request_tenant_id(request: Request, settings: Settings) -> Optional[str]:
+    tenant_id = getattr(request.state, "tenant_id", None)
+    if tenant_id:
+        return tenant_id
+    if settings.multi_tenant and settings.tenant_slug:
+        tenant = get_tenant_store(settings).get_by_slug(settings.tenant_slug)
+        return tenant.id if tenant else None
+    return None
+
+
+def _portal_user_tenant_id(request: Request, settings: Settings) -> Optional[str]:
+    portal = get_portal_session(request, settings)
+    if portal is not None:
+        user = get_user_store(settings).get_by_id(portal.user_id)
+        if user and user.tenant_id:
+            return user.tenant_id
+    return _request_tenant_id(request, settings)
+
+
 def create_app(settings: Optional[Settings] = None) -> FastAPI:
     settings = settings or load_settings()
+    bootstrap_tenants(settings)
     cache = PackageCache(settings.cache_dir, settings.cache_ttl)
     service = GenerationService(settings, cache)
     usage_store = get_usage_store(settings)
@@ -274,6 +376,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     app.state.settings = settings
     app.state.cache = cache
     app.state.service = service
+    app.state.demo_rate_limiter = DemoRateLimiter(limit=settings.demo_rate_limit_per_hour)
 
     # --- error format: RFC 9457 -------------------------------------------------
     @app.exception_handler(StarletteHTTPException)
@@ -308,21 +411,16 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     # --- MCP home landing (always; before MCP mount) -----------------------------
     host_hint = display_host_hint(settings.host, settings.port)
 
-    def _setup_payload() -> dict[str, Any]:
-        if settings.tenant_slug and settings.public_base_url:
-            return build_setup_payload(
-                tenant_slug=settings.tenant_slug,
-                public_base_url=settings.public_base_url,
-                version=__version__,
-            )
-        return build_local_setup(version=__version__, host_hint=host_hint)
+    def _setup_payload(request: Optional[Request] = None) -> dict[str, Any]:
+        return build_setup_for_request(settings, request)
 
     @app.get("/", tags=["hosted"], response_class=HTMLResponse)
-    async def mcp_home() -> HTMLResponse:
-        if settings.tenant_slug and settings.public_base_url:
+    async def mcp_home(request: Request) -> HTMLResponse:
+        slug = resolve_tenant_slug(settings, request)
+        if slug and (settings.public_base_url or settings.effective_api_base_url()):
             html = render_hosted_landing(
-                tenant_slug=settings.tenant_slug,
-                public_base_url=settings.public_base_url,
+                tenant_slug=slug,
+                public_base_url=settings.public_base_url or settings.effective_api_base_url(),
                 version=__version__,
             )
         else:
@@ -334,13 +432,16 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         request: Request,
         format: Optional[str] = Query(default=None, alias="format"),
     ) -> Any:
-        payload = _setup_payload()
+        payload = _setup_payload(request)
         accept = request.headers.get("accept", "")
         wants_json = format == "json" or (
             "application/json" in accept and "text/html" not in accept
         )
         if wants_json:
             return payload
+        if settings.server_role == "api":
+            portal = settings.effective_portal_base_url()
+            return RedirectResponse(f"{portal}/dashboard/setup", status_code=302)
         return RedirectResponse("/dashboard/setup", status_code=302)
 
     # --- health probes (never authenticated) --------------------------------------
@@ -353,6 +454,23 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         if settings.cache_ttl > 0 and not os.access(settings.cache_dir, os.W_OK):
             raise StarletteHTTPException(503, "cache directory is not writable")
         return {"status": "ready"}
+
+    @app.post("/v1/demo/generate", tags=["demo"])
+    async def demo_generate(body: DemoGenerateRequest, request: Request) -> dict[str, Any]:
+        """Public browser demo (ucpcore.org/try): GitHub issues only, rate-limited."""
+        if not settings.demo_enabled:
+            raise StarletteHTTPException(404, "demo endpoint is disabled")
+        client_ip = request.client.host if request.client else "unknown"
+        allowed, retry_after = request.app.state.demo_rate_limiter.check(client_ip)
+        if not allowed:
+            raise StarletteHTTPException(
+                429,
+                f"demo rate limit exceeded; retry in {retry_after}s",
+            )
+        try:
+            return generate_demo_package(body.ref, github_token=settings.github_token)
+        except ValueError as exc:
+            raise StarletteHTTPException(400, str(exc)) from exc
 
     # --- REST API v1 -----------------------------------------------------------
     @app.post("/v1/generate", tags=["generate"])
@@ -368,7 +486,14 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         if quota_err and principal != "service":
             raise StarletteHTTPException(429, quota_err)
         entry_id, package, cached = service.generate(
-            body.source, body.ref, llm=body.llm, since=body.since, audience=audience
+            body.source,
+            body.ref,
+            llm=body.llm,
+            since=body.since,
+            audience=audience,
+            principal=principal if principal != "service" else None,
+            tenant_id=_request_tenant_id(request, settings),
+            tenant_slug=getattr(request.state, "tenant_slug", None) or settings.tenant_slug,
         )
         if not cached and principal != "service":
             usage_store.record_package_generated(principal)
@@ -520,7 +645,9 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             raise StarletteHTTPException(404, f"unknown webhook source '{source}'")
         redis_url = _require_webhook_engine(settings)
         store = get_webhook_store(settings)
-        resolved = store.resolve(source, url_token)
+        resolved = store.resolve(
+            source, url_token, tenant_id=getattr(request.state, "tenant_id", None)
+        )
         if resolved is None:
             raise StarletteHTTPException(401, "invalid or revoked webhook token")
         _endpoint, signing_secret = resolved
@@ -541,6 +668,63 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             raise StarletteHTTPException(400, str(exc)) from exc
         except json.JSONDecodeError as exc:
             raise StarletteHTTPException(400, "invalid JSON payload") from exc
+
+    @app.get("/v1/me/connectors", tags=["me"])
+    async def me_list_connectors(request: Request) -> dict[str, Any]:
+        _me_token_owner(request, settings)
+        return list_connectors(settings, tenant_id=_portal_user_tenant_id(request, settings))
+
+    @app.put("/v1/me/connectors/{provider}/scope", tags=["me"])
+    async def me_update_connector_scope(
+        request: Request,
+        provider: str,
+        body: MeUpdateConnectorScopeRequest,
+    ) -> dict[str, Any]:
+        _me_token_owner(request, settings)
+        if provider not in CONNECTOR_SPECS:
+            raise StarletteHTTPException(404, f"unknown connector: {provider}")
+        try:
+            scope = update_scope(
+                settings,
+                provider,
+                body.scope,
+                tenant_id=_portal_user_tenant_id(request, settings),
+            )
+        except ValueError as exc:
+            raise StarletteHTTPException(404, str(exc)) from exc
+        except RuntimeError as exc:
+            raise StarletteHTTPException(503, str(exc)) from exc
+        return {"provider": provider, "scope": scope}
+
+    @app.get("/v1/me/connectors/{provider}/resources", tags=["me"])
+    async def me_list_connector_resources(
+        request: Request,
+        provider: str,
+        field: str = Query(..., min_length=1, max_length=32),
+    ) -> dict[str, Any]:
+        _me_token_owner(request, settings)
+        if provider not in CONNECTOR_SPECS:
+            raise StarletteHTTPException(404, f"unknown connector: {provider}")
+        try:
+            return await list_connector_resources(settings, provider, field)
+        except ValueError as exc:
+            raise StarletteHTTPException(404, str(exc)) from exc
+        except RuntimeError as exc:
+            raise StarletteHTTPException(503, str(exc)) from exc
+
+    @app.get("/v1/me/indexing/status", tags=["me"])
+    async def me_indexing_status(request: Request) -> dict[str, Any]:
+        _me_token_owner(request, settings)
+        return get_indexing_status(
+            settings,
+            tenant_id=_portal_user_tenant_id(request, settings),
+            tenant_slug=resolve_tenant_slug(settings, request),
+        )
+
+    @app.get("/v1/me/demo-context", tags=["me"])
+    async def me_demo_context(request: Request) -> dict[str, Any]:
+        principal, _ = _resolve_me_principal(request, settings)
+        return build_demo_context(settings, principal, request.app.state.cache)
 
     @app.get("/v1/me/webhooks", tags=["me"])
     async def me_list_webhooks(request: Request) -> dict[str, Any]:
@@ -570,7 +754,10 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         store = get_webhook_store(settings)
         try:
             created = store.create(
-                user_id=user_id, source=body.source, label=body.label
+                user_id=user_id,
+                source=body.source,
+                label=body.label,
+                tenant_id=_request_tenant_id(request, settings),
             )
         except ValueError as exc:
             raise StarletteHTTPException(400, str(exc)) from exc
@@ -692,7 +879,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     @app.get("/v1/me/profile", tags=["me"])
     async def me_profile(request: Request) -> dict[str, Any]:
         portal = get_portal_session(request, settings)
-        payload = _setup_payload()
+        payload = _setup_payload(request)
         if portal is not None:
             return {
                 "principal": portal.display_name,
@@ -730,6 +917,9 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             outcome = (row.get("receipt") or {}).get("outcome") or "unknown"
             outcomes[outcome] = outcomes.get(outcome, 0) + 1
         recent = audit.list_recent(limit=30, principal=principal)
+        from .token_savings import get_token_savings_store
+
+        token_savings = get_token_savings_store(settings).summary(principal)
         return {
             **summary,
             "daily": stats["daily"],
@@ -737,6 +927,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             "generates_logged": stats["generates"],
             "recent_activity": recent,
             "receipts": {"total": len(mine), "outcomes": outcomes},
+            "token_savings": token_savings,
         }
 
     @app.get("/v1/me/tokens", tags=["me"])
@@ -839,13 +1030,15 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         return {"invites": get_invite_store(settings).list_invites()}
 
     @app.post("/v1/admin/invites", tags=["admin"])
-    async def admin_create_invite(body: CreateInviteRequest) -> dict[str, Any]:
+    async def admin_create_invite(body: CreateInviteRequest, request: Request) -> dict[str, Any]:
         invite_store = get_invite_store(settings)
+        tenant_id = getattr(request.state, "tenant_id", None)
         try:
             invite, code = invite_store.create(
                 principal_name=body.name,
                 scopes=list(body.scopes),
                 ttl_hours=body.ttl_hours,
+                tenant_id=tenant_id,
             )
         except ValueError as exc:
             raise StarletteHTTPException(400, str(exc)) from exc
@@ -916,6 +1109,7 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             return RedirectResponse(f"/dashboard/{asset_path}", status_code=301)
 
     app.include_router(build_portal_auth_router(settings))
+    app.include_router(build_sidebar_auth_router(settings))
     app.include_router(build_oauth_router(settings))
     app.include_router(build_mcp_oauth_router(settings))
 
@@ -927,17 +1121,22 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
     # Middleware wraps everything above, including the MCP mount.
     # CORS must be outermost so 401/403 short-circuits from auth still get ACAO headers.
     token_store = get_token_store(settings)
-    hosted = bool(settings.tenant_slug) and (
+    hosted = bool(settings.tenant_slug or settings.multi_tenant) and (
         settings.hosted_mode or bool(settings.public_base_url)
     )
+    tenant_store = get_tenant_store(settings) if settings.multi_tenant else None
     app.add_middleware(_BodyLimitMiddleware)
+    if settings.server_role != "full":
+        app.add_middleware(_RoleGateMiddleware, settings=settings)
     if auth_required(settings, token_store):
         app.add_middleware(AuthMiddleware, settings=settings, token_store=token_store)
-    if settings.tenant_slug:
+    if settings.tenant_slug or settings.multi_tenant:
         app.add_middleware(
             TenantPathMiddleware,
             tenant_slug=settings.tenant_slug,
             hosted_mode=hosted,
+            multi_tenant=settings.multi_tenant,
+            tenant_store=tenant_store,
         )
     app.add_middleware(_ExtensionCorsMiddleware)
 

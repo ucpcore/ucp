@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Optional
 
+from .brand import LOGO_SVG, MCP_ICON_URL, MCP_SERVER_KEY, PRODUCT_NAME, TAGLINE
+from .sidebar_auth import build_sidebar_setup
 from .tenant import public_api_url, public_mcp_url
 
 
@@ -15,9 +17,15 @@ def display_host_hint(host: str, port: int) -> str:
     return f"{bind}:{port}"
 
 
+def _mcp_server_entry(*, url: str, **extra: Any) -> dict[str, Any]:
+    entry: dict[str, Any] = {"url": url, "icon": MCP_ICON_URL}
+    entry.update(extra)
+    return entry
+
 
 def build_client_configs(mcp_url: str) -> dict[str, Any]:
     """Per-client MCP connection snippets (OAuth-first, manual token fallback)."""
+    key = MCP_SERVER_KEY
     headers = {"Authorization": "Bearer ${env:UCP_CTX_TOKEN}"}
     manual_note = (
         "Fallback: export UCP_CTX_TOKEN=ctx_… from /dashboard/access, then use this config."
@@ -28,10 +36,10 @@ def build_client_configs(mcp_url: str) -> dict[str, Any]:
             "label": "Cursor",
             "config_path": "Settings → MCP, or ~/.cursor/mcp.json",
             "auth_mode": "oauth",
-            "note": "Settings → MCP → contextos → Authenticate.",
-            "config": {"mcpServers": {"contextos": {"url": mcp_url}}},
+            "note": f"Settings → MCP → {key} → Authenticate.",
+            "config": {"mcpServers": {key: _mcp_server_entry(url=mcp_url)}},
             "fallback_config": {
-                "mcpServers": {"contextos": {"url": mcp_url, "headers": headers}}
+                "mcpServers": {key: _mcp_server_entry(url=mcp_url, headers=headers)}
             },
             "fallback_note": manual_note,
         },
@@ -39,19 +47,15 @@ def build_client_configs(mcp_url: str) -> dict[str, Any]:
             "label": "Claude Code",
             "config_path": "~/.claude.json, project .mcp.json, or `claude mcp add --transport http`",
             "auth_mode": "oauth",
-            "note": "Run `/mcp` → Authenticate, or `claude mcp login contextos` after adding the server.",
+            "note": f"Run `/mcp` → Authenticate, or `claude mcp login {key}` after adding the server.",
             "config": {
                 "mcpServers": {
-                    "contextos": {"type": "http", "url": mcp_url},
+                    key: _mcp_server_entry(url=mcp_url, type="http"),
                 }
             },
             "fallback_config": {
                 "mcpServers": {
-                    "contextos": {
-                        "type": "http",
-                        "url": mcp_url,
-                        "headers": headers,
-                    }
+                    key: _mcp_server_entry(url=mcp_url, type="http", headers=headers),
                 }
             },
             "fallback_note": manual_note,
@@ -60,19 +64,15 @@ def build_client_configs(mcp_url: str) -> dict[str, Any]:
             "label": "VS Code",
             "config_path": ".vscode/mcp.json (GitHub Copilot MCP)",
             "auth_mode": "oauth",
-            "note": "Copilot Chat → MCP → contextos → Sign in / Authenticate.",
+            "note": f"Copilot Chat → MCP → {key} → Sign in / Authenticate.",
             "config": {
                 "servers": {
-                    "contextos": {"type": "http", "url": mcp_url},
+                    key: _mcp_server_entry(url=mcp_url, type="http"),
                 }
             },
             "fallback_config": {
                 "servers": {
-                    "contextos": {
-                        "type": "http",
-                        "url": mcp_url,
-                        "headers": headers,
-                    }
+                    key: _mcp_server_entry(url=mcp_url, type="http", headers=headers),
                 }
             },
             "fallback_note": manual_note,
@@ -82,9 +82,9 @@ def build_client_configs(mcp_url: str) -> dict[str, Any]:
             "config_path": "~/.codeium/windsurf/mcp_config.json",
             "auth_mode": "oauth",
             "note": "If Authenticate is available, use URL-only config. Otherwise use manual token fallback.",
-            "config": {"mcpServers": {"contextos": {"url": mcp_url}}},
+            "config": {"mcpServers": {key: _mcp_server_entry(url=mcp_url)}},
             "fallback_config": {
-                "mcpServers": {"contextos": {"url": mcp_url, "headers": headers}}
+                "mcpServers": {key: _mcp_server_entry(url=mcp_url, headers=headers)}
             },
             "fallback_note": manual_note,
         },
@@ -99,7 +99,7 @@ def build_client_configs(mcp_url: str) -> dict[str, Any]:
             "note": "export UCP_CTX_TOKEN=ctx_… then reload Claude Desktop MCP.",
             "config": {
                 "mcpServers": {
-                    "contextos": {
+                    key: {
                         "command": "npx",
                         "args": [
                             "-y",
@@ -122,6 +122,13 @@ def _setup_common(*, mcp_url: str, admin_url: str, version: str, **extra: Any) -
         "mcp_url": mcp_url,
         "admin_url": admin_url,
         "client_configs": client_configs,
+        "brand": {
+            "name": PRODUCT_NAME,
+            "domain": "rangor.io",
+            "tagline": TAGLINE,
+            "mcp_server_key": MCP_SERVER_KEY,
+            "icon_url": MCP_ICON_URL,
+        },
         # Back-compat alias for older consumers
         "cursor_config": client_configs["cursor"]["config"],
         "onboarding": [
@@ -138,6 +145,7 @@ def build_setup_payload(
     tenant_slug: str,
     public_base_url: str,
     version: str,
+    sidebar: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     mcp_url = public_mcp_url(public_base_url, tenant_slug)
     admin_url = public_api_url(public_base_url, tenant_slug, "/admin")
@@ -148,6 +156,7 @@ def build_setup_payload(
         tenant_slug=tenant_slug,
         public_base_url=public_base_url.rstrip("/"),
         api_base=f"/v1/{tenant_slug}",
+        sidebar=sidebar or {},
     )
 
 
@@ -164,7 +173,7 @@ def render_hosted_landing(*, tenant_slug: str, public_base_url: str, version: st
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Context OS — MCP Hosted</title>
+  <title>{PRODUCT_NAME} — MCP Hosted</title>
   <style>
     body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 42rem; line-height: 1.5;
       background: #0f172a; color: #e2e8f0; padding: 0 1rem; }}
@@ -180,7 +189,8 @@ def render_hosted_landing(*, tenant_slug: str, public_base_url: str, version: st
 </head>
 <body>
   <p class="badge">Hosted pilot · v{version}</p>
-  <h1>Context OS MCP</h1>
+  <h1>{PRODUCT_NAME} MCP</h1>
+  <p class="meta">{TAGLINE}</p>
   <p class="meta">Tenant <code>{tenant_slug}</code> · dedicated hosted stack</p>
 
   <h2>MCP URL</h2>
@@ -208,7 +218,7 @@ def render_local_landing(*, version: str, host_hint: str = "127.0.0.1:8080") -> 
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Context OS — MCP</title>
+  <title>{PRODUCT_NAME} — MCP</title>
   <style>
     body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 42rem; line-height: 1.5;
       background: #0f172a; color: #e2e8f0; padding: 0 1rem; }}
@@ -220,7 +230,7 @@ def render_local_landing(*, version: str, host_hint: str = "127.0.0.1:8080") -> 
   </style>
 </head>
 <body>
-  <h1>Context OS MCP</h1>
+  <h1>{PRODUCT_NAME} MCP</h1>
   <p class="meta">Self-hosted · v{version}</p>
   <ul>
     <li>MCP endpoint: <code>{mcp_url}</code></li>
@@ -231,7 +241,7 @@ def render_local_landing(*, version: str, host_hint: str = "127.0.0.1:8080") -> 
 </html>"""
 
 
-def build_local_setup(*, version: str, host_hint: str = "127.0.0.1:8080") -> dict[str, Any]:
+def build_local_setup(*, version: str, host_hint: str = "127.0.0.1:8080", sidebar: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     base = f"http://{host_hint}"
     return _setup_common(
         mcp_url=f"{base}/mcp",
@@ -240,6 +250,7 @@ def build_local_setup(*, version: str, host_hint: str = "127.0.0.1:8080") -> dic
         mode="self-hosted",
         portal_url=f"{base}/dashboard",
         api_base="/v1",
+        sidebar=sidebar or {},
     )
 
 
@@ -279,7 +290,7 @@ def render_setup_html(payload: dict[str, Any]) -> str:
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Context OS — MCP Setup</title>
+  <title>{PRODUCT_NAME} — MCP Setup</title>
   <style>
     body {{ font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 42rem; line-height: 1.5;
       background: #0f172a; color: #e2e8f0; padding: 0 1rem; }}

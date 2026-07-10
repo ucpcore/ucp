@@ -17,6 +17,8 @@ from .portal_session import (
     read_session_cookie,
     set_session_cookie,
 )
+from .tenant import normalize_tenant_slug
+from .tenant_store import get_tenant_store
 from .user_store import get_user_store
 
 
@@ -26,6 +28,18 @@ class BootstrapRequest(BaseModel):
     email: str = Field(min_length=3, max_length=254)
     password: str = Field(min_length=8, max_length=256)
     display_name: Optional[str] = Field(default=None, max_length=120)
+    org_name: Optional[str] = Field(default=None, max_length=120)
+    org_slug: Optional[str] = Field(default=None, max_length=63)
+
+
+class RegisterOrgRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=8, max_length=256)
+    display_name: Optional[str] = Field(default=None, max_length=120)
+    org_name: str = Field(min_length=2, max_length=120)
+    org_slug: str = Field(min_length=2, max_length=63)
 
 
 class LoginRequest(BaseModel):
@@ -61,6 +75,15 @@ def require_portal_session(request: Request, settings: Settings) -> PortalSessio
     return session
 
 
+def _default_org_slug(settings: Settings, email: str, explicit: Optional[str]) -> str:
+    if explicit and explicit.strip():
+        return normalize_tenant_slug(explicit.strip()) or "workspace"
+    if settings.tenant_slug:
+        return settings.tenant_slug
+    local = email.split("@")[0].lower().replace(".", "-")
+    return normalize_tenant_slug(local) or "workspace"
+
+
 def build_portal_auth_router(settings: Settings) -> APIRouter:
     router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
@@ -68,18 +91,64 @@ def build_portal_auth_router(settings: Settings) -> APIRouter:
     async def bootstrap_available() -> dict[str, bool]:
         return {"bootstrap": not get_user_store(settings).has_users()}
 
+    @router.get("/register-available")
+    async def register_available() -> dict[str, bool]:
+        return {"register": settings.multi_tenant}
+
     @router.post("/bootstrap")
     async def bootstrap(body: BootstrapRequest) -> JSONResponse:
         users = get_user_store(settings)
+        slug = _default_org_slug(settings, body.email, body.org_slug)
+        org_name = (body.org_name or slug).strip()
+        tenant = get_tenant_store(settings).ensure_tenant(slug=slug, name=org_name)
         try:
             user = users.bootstrap_admin(
                 email=body.email,
                 password=body.password,
                 display_name=(body.display_name or body.email.split("@")[0]),
+                tenant_id=tenant.id,
             )
         except ValueError as exc:
             raise StarletteHTTPException(400, str(exc)) from exc
-        response = JSONResponse({"user": user.to_public(), "message": "Admin account created"})
+        response = JSONResponse(
+            {
+                "user": user.to_public(),
+                "tenant": tenant.to_public(),
+                "message": "Admin account created",
+            }
+        )
+        set_session_cookie(response, PortalSession.from_user(user), settings)
+        return response
+
+    @router.post("/register")
+    async def register_org(body: RegisterOrgRequest) -> JSONResponse:
+        if not settings.multi_tenant:
+            raise StarletteHTTPException(403, "registration disabled — use an invite link")
+        slug = normalize_tenant_slug(body.org_slug.strip())
+        if not slug:
+            raise StarletteHTTPException(400, "invalid org_slug")
+        tenant_store = get_tenant_store(settings)
+        if tenant_store.get_by_slug(slug) is not None:
+            raise StarletteHTTPException(409, "organization slug already taken")
+        tenant = tenant_store.ensure_tenant(slug=slug, name=body.org_name.strip())
+        users = get_user_store(settings)
+        try:
+            user = users.create_local_user(
+                email=body.email,
+                password=body.password,
+                display_name=(body.display_name or body.email.split("@")[0]),
+                role="admin",
+                tenant_id=tenant.id,
+            )
+        except ValueError as exc:
+            raise StarletteHTTPException(400, str(exc)) from exc
+        response = JSONResponse(
+            {
+                "user": user.to_public(),
+                "tenant": tenant.to_public(),
+                "message": "Workspace created",
+            }
+        )
         set_session_cookie(response, PortalSession.from_user(user), settings)
         return response
 
@@ -112,13 +181,17 @@ def build_portal_auth_router(settings: Settings) -> APIRouter:
         }
 
     @router.post("/register-invite")
-    async def register_invite(body: RegisterInviteRequest) -> JSONResponse:
+    async def register_invite(body: RegisterInviteRequest, request: Request) -> JSONResponse:
         if not body.code.startswith(INVITE_PREFIX):
             raise StarletteHTTPException(400, "invalid invite code")
         invite_store = get_invite_store(settings)
         preview = invite_store.preview(body.code.strip())
         if preview is None or preview.get("status") != "pending":
             raise StarletteHTTPException(400, "invite is invalid, expired, or already used")
+        tenant_id = getattr(request.state, "tenant_id", None) or preview.get("tenant_id")
+        if tenant_id is None and settings.tenant_slug:
+            tenant = get_tenant_store(settings).get_by_slug(settings.tenant_slug)
+            tenant_id = tenant.id if tenant else None
         users = get_user_store(settings)
         display = body.display_name or preview.get("principal_name") or body.email.split("@")[0]
         try:
@@ -127,6 +200,7 @@ def build_portal_auth_router(settings: Settings) -> APIRouter:
                 password=body.password,
                 display_name=str(display),
                 role="member",
+                tenant_id=tenant_id,
             )
             invite_store.mark_redeemed_by_user(body.code.strip(), user.id)
         except ValueError as exc:

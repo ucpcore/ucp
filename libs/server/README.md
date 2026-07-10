@@ -40,6 +40,26 @@ curl -s -X POST http://localhost:8080/v1/generate \
 
 Interactive API docs: <http://localhost:8080/docs>.
 
+### Browser demo (`ucpcore.org/try`)
+
+For the public try page, enable the unauthenticated demo endpoint (GitHub only,
+rate-limited, CORS for ucpcore.org):
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e UCP_DEMO_ENABLED=1 \
+  -e GITHUB_TOKEN=ghp_yourtoken \
+  ghcr.io/ucpcore/ucp-server:latest
+```
+
+```bash
+curl -s -X POST http://localhost:8080/v1/demo/generate \
+  -H 'Content-Type: application/json' \
+  -d '{"ref": "microsoft/vscode#519"}' | jq '.stats'
+```
+
+Deploy at `demo.ucpcore.org` and point the try page manifest to that host.
+
 ## Connect an agent (MCP)
 
 The MCP endpoint speaks Streamable HTTP at `http://localhost:8080/mcp`.
@@ -222,6 +242,9 @@ For dedicated-tenant deployments set `UCP_TENANT_SLUG`, `UCP_PUBLIC_BASE_URL`, a
 | `UCP_HOSTED_MODE` | `false` | When true, block legacy `/mcp` and `/v1/*` without slug |
 | `UCP_CACHE_DIR` | `~/.cache/ucp-server` | Disk cache for generated packages |
 | `UCP_CACHE_TTL` | `900` (15 min) | Cache TTL in seconds; `0` disables caching |
+| `UCP_DEMO_ENABLED` | `0` | Enable `POST /v1/demo/generate` (public browser demo) |
+| `UCP_DEMO_RATE_LIMIT_PER_HOUR` | `30` | Per-IP rate limit for demo endpoint |
+| `UCP_DEMO_CORS_ORIGINS` | `https://ucpcore.org,…` | Allowed browser origins for demo CORS |
 | `GITHUB_TOKEN` / `GH_TOKEN` | *(unset)* | GitHub token (public issues work without it, at a low rate limit) |
 | `JIRA_BASE_URL` | *(unset)* | e.g. `https://yourcompany.atlassian.net` |
 | `JIRA_EMAIL` | *(unset)* | Jira Cloud email (Basic auth); omit for Server/DC PAT |
@@ -231,6 +254,41 @@ For dedicated-tenant deployments set `UCP_TENANT_SLUG`, `UCP_PUBLIC_BASE_URL`, a
 | `UCP_LLM_MODEL` | `gpt-4o-mini` | LLM model name |
 | `UCP_LOG_JSON` | `false` | `1`/`true` switches to JSON-lines logs |
 | `UCP_LOG_LEVEL` | `INFO` | Log level |
+
+## Hosted Rangor (multi-tenant pilot)
+
+For **Rangor** hosted stack (`0.5.0-beta`), use tenant-scoped URLs — slug is your
+**organization id**, not a global constant:
+
+```text
+https://mcp.rangor.io/v1/{tenant_slug}/mcp
+https://api.rangor.io/v1/{tenant_slug}/generate
+```
+
+Cursor (`mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "rangor": {
+      "url": "https://mcp.rangor.io/v1/acme/mcp"
+    }
+  }
+}
+```
+
+Click **Authenticate** in Cursor → portal login at `app.rangor.io`.
+
+Deploy and local dev: [deploy/pilot/README.md](../../deploy/pilot/README.md).  
+Cursor hosted guide: [clients/cursor/ucp-hosted.md](clients/cursor/ucp-hosted.md).
+
+### Roles (`UCP_SERVER_ROLE`)
+
+| Role | Use |
+|------|-----|
+| `full` | Monolith local dev (API + Portal in one process) |
+| `api` | `rangor-api` container — REST, MCP, webhooks |
+| `portal` | Static SPA only (nginx) |
 
 ## Security
 

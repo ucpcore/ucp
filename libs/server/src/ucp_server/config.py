@@ -7,7 +7,7 @@ UCP_CACHE_TTL) instead of surfacing a stack trace at request time.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import AliasChoices, Field, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,6 +32,18 @@ class Settings(BaseSettings):
     tenant_slug: Optional[str] = Field(default=None, validation_alias="UCP_TENANT_SLUG")
     public_base_url: Optional[str] = Field(default=None, validation_alias="UCP_PUBLIC_BASE_URL")
     hosted_mode: bool = Field(default=False, validation_alias="UCP_HOSTED_MODE")
+
+    # Process role: full (monolith), api (programmatic edge), portal (static UI only).
+    server_role: Literal["full", "api", "portal"] = Field(
+        default="full", validation_alias="UCP_SERVER_ROLE"
+    )
+    multi_tenant: bool = Field(default=False, validation_alias="UCP_MULTI_TENANT")
+    api_public_base_url: Optional[str] = Field(
+        default=None, validation_alias="UCP_API_PUBLIC_BASE_URL"
+    )
+    portal_public_base_url: Optional[str] = Field(
+        default=None, validation_alias="UCP_PORTAL_PUBLIC_BASE_URL"
+    )
 
     # Disk cache for generated packages. TTL in seconds; 0 disables caching.
     cache_dir: Path = Field(
@@ -111,6 +123,16 @@ class Settings(BaseSettings):
     oidc_client_id: Optional[str] = Field(default=None, validation_alias="UCP_OIDC_CLIENT_ID")
     oidc_client_secret: Optional[str] = Field(default=None, validation_alias="UCP_OIDC_CLIENT_SECRET")
 
+    # Public browser demo (ucpcore.org/try) — unauthenticated GitHub-only generation.
+    demo_enabled: bool = Field(default=False, validation_alias="UCP_DEMO_ENABLED")
+    demo_rate_limit_per_hour: int = Field(
+        default=30, ge=1, le=500, validation_alias="UCP_DEMO_RATE_LIMIT_PER_HOUR"
+    )
+    demo_cors_origins: str = Field(
+        default="https://ucpcore.org,https://www.ucpcore.org,http://127.0.0.1:8080",
+        validation_alias="UCP_DEMO_CORS_ORIGINS",
+    )
+
     # Logging: human-readable by default, JSON when UCP_LOG_JSON=1/true.
     log_json: bool = Field(default=False, validation_alias="UCP_LOG_JSON")
     log_level: str = Field(default="INFO", validation_alias="UCP_LOG_LEVEL")
@@ -142,6 +164,40 @@ class Settings(BaseSettings):
         if value is None:
             return False
         return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    @field_validator("multi_tenant", mode="before")
+    @classmethod
+    def _multi_tenant(cls, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    @field_validator("server_role", mode="before")
+    @classmethod
+    def _server_role(cls, value: Any) -> str:
+        role = str(value or "full").strip().lower()
+        if role not in {"full", "api", "portal"}:
+            raise ValueError("UCP_SERVER_ROLE must be full, api, or portal")
+        return role
+
+    @property
+    def serves_api(self) -> bool:
+        return self.server_role in {"full", "api"}
+
+    @property
+    def serves_portal_ui(self) -> bool:
+        return self.server_role in {"full", "portal"}
+
+    def effective_api_base_url(self) -> Optional[str]:
+        return (self.api_public_base_url or self.public_base_url or "").rstrip("/") or None
+
+    def effective_portal_base_url(self) -> str:
+        if self.portal_public_base_url:
+            return self.portal_public_base_url.rstrip("/")
+        base = self.effective_api_base_url()
+        return base or f"http://{self.host}:{self.port}"
 
 
 class ConfigError(RuntimeError):

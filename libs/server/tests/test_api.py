@@ -187,7 +187,7 @@ def test_admin_sources_requires_engine(doc_client, monkeypatch):
 def test_admin_dashboard_html(client):
     resp = client.get("/admin")
     assert resp.status_code == 200
-    assert "Context OS Admin" in resp.text
+    assert "Rangor Admin" in resp.text
     assert "UCP_SERVER_API_KEY" in resp.text
     assert "sessionStorage" in resp.text
     assert "sync-btn" in resp.text

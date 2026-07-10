@@ -19,6 +19,8 @@ from pydantic import BaseModel, Field
 from .config import Settings
 from .mcp_oauth_view import render_mcp_consent_cancelled, render_mcp_consent_page
 from .portal_auth import get_portal_session
+from .tenant import extract_tenant_slug_from_path
+from .tenant_resolve import resolve_tenant_slug, tenant_slug_from_user_tenant_id
 from .token_store import get_token_store
 from .user_store import get_user_store
 
@@ -37,38 +39,40 @@ def public_base(settings: Settings) -> str:
     return f"http://{host}:{settings.port}"
 
 
-def mcp_resource_url(settings: Settings) -> str:
+def mcp_resource_url(settings: Settings, *, tenant_slug: Optional[str] = None) -> str:
     base = public_base(settings)
-    if settings.tenant_slug:
-        return f"{base}/v1/{settings.tenant_slug}/mcp"
+    slug = tenant_slug or resolve_tenant_slug(settings, request=None)
+    if slug:
+        return f"{base}/v1/{slug}/mcp"
     return f"{base}/mcp"
+
+
+def resource_metadata_url(settings: Settings, *, tenant_slug: Optional[str] = None) -> str:
+    base = public_base(settings)
+    slug = tenant_slug or resolve_tenant_slug(settings, request=None)
+    if slug:
+        return f"{base}/.well-known/oauth-protected-resource/v1/{slug}/mcp"
+    return f"{base}/.well-known/oauth-protected-resource"
+
+
+def protected_resource_metadata(
+    settings: Settings, *, tenant_slug: Optional[str] = None
+) -> dict[str, Any]:
+    return {
+        "resource": mcp_resource_url(settings, tenant_slug=tenant_slug),
+        "authorization_servers": [mcp_oauth_issuer(settings)],
+        "scopes_supported": list(MCP_SCOPES),
+        "bearer_methods_supported": ["header"],
+    }
 
 
 def mcp_oauth_issuer(settings: Settings) -> str:
     return f"{public_base(settings)}/v1/oauth/mcp"
 
 
-def resource_metadata_url(settings: Settings) -> str:
-    resource = mcp_resource_url(settings)
-    base = public_base(settings)
-    if settings.tenant_slug:
-        return f"{base}/.well-known/oauth-protected-resource/v1/{settings.tenant_slug}/mcp"
-    return f"{base}/.well-known/oauth-protected-resource"
-
-
 def authorization_server_metadata_url(settings: Settings) -> str:
-    issuer = mcp_oauth_issuer(settings)
     base = public_base(settings)
     return f"{base}/.well-known/oauth-authorization-server/v1/oauth/mcp"
-
-
-def protected_resource_metadata(settings: Settings) -> dict[str, Any]:
-    return {
-        "resource": mcp_resource_url(settings),
-        "authorization_servers": [mcp_oauth_issuer(settings)],
-        "scopes_supported": list(MCP_SCOPES),
-        "bearer_methods_supported": ["header"],
-    }
 
 
 def authorization_server_metadata(settings: Settings) -> dict[str, Any]:
@@ -86,8 +90,11 @@ def authorization_server_metadata(settings: Settings) -> dict[str, Any]:
     }
 
 
-def mcp_unauthorized_response(settings: Settings) -> JSONResponse:
-    meta_url = resource_metadata_url(settings)
+def mcp_unauthorized_response(
+    settings: Settings, request: Optional[Request] = None
+) -> JSONResponse:
+    slug = resolve_tenant_slug(settings, request) if request is not None else None
+    meta_url = resource_metadata_url(settings, tenant_slug=slug)
     scope = " ".join(MCP_SCOPES)
     return JSONResponse(
         status_code=401,
@@ -338,12 +345,15 @@ def build_mcp_oauth_router(settings: Settings) -> APIRouter:
     @router.get("/.well-known/oauth-protected-resource")
     @router.get("/.well-known/oauth-protected-resource/{suffix:path}")
     async def protected_resource_metadata_route(suffix: str = "") -> dict[str, Any]:
-        expected_suffix = ""
-        if settings.tenant_slug:
-            expected_suffix = f"v1/{settings.tenant_slug}/mcp"
-        if suffix and suffix.rstrip("/") != expected_suffix.rstrip("/"):
-            raise HTTPException(404, "protected resource metadata not found")
-        return protected_resource_metadata(settings)
+        slug: Optional[str] = None
+        if suffix:
+            prm_path = suffix if suffix.startswith("/") else f"/{suffix}"
+            slug = extract_tenant_slug_from_path(prm_path)
+            if slug is None:
+                raise HTTPException(404, "protected resource metadata not found")
+        elif settings.tenant_slug:
+            slug = settings.tenant_slug
+        return protected_resource_metadata(settings, tenant_slug=slug)
 
     @router.get("/.well-known/oauth-authorization-server/{suffix:path}")
     async def authorization_server_metadata_route(suffix: str) -> dict[str, Any]:
@@ -426,12 +436,13 @@ def build_mcp_oauth_router(settings: Settings) -> APIRouter:
         )
 
         cancel_qs = urlencode({"consent_id": consent_id})
+        user_slug = tenant_slug_from_user_tenant_id(settings, user.tenant_id)
         html = render_mcp_consent_page(
             client_name=client.client_name,
             redirect_uri=redirect_uri,
             user_email=user.email,
             user_display_name=user.display_name,
-            mcp_url=mcp_resource_url(settings),
+            mcp_url=mcp_resource_url(settings, tenant_slug=user_slug),
             scopes=list(MCP_SCOPES),
             consent_id=consent_id,
             approve_url="/v1/oauth/mcp/authorize/approve",

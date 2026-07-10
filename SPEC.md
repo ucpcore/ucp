@@ -399,6 +399,8 @@ Signals that the producer **expects** a Usage Receipt from the consumer during
 the work session:
 
 - Package `profiles` includes `ucp-verified`.
+- Producer MUST set `extensions["org.ucpcore.receipt"].expected` to `true`
+  (machine-checkable signal; validated by conformance profile rules).
 - Consumer SHOULD submit a receipt (§4.12) after meaningful interaction
   (panel close, task end, explicit submit).
 - Receipt submission is transport-specific; reference API: `POST /v1/receipt`

@@ -44,12 +44,13 @@ def test_hosted_landing_and_setup(hosted_client):
 
     setup = hosted_client.get("/setup?format=json").json()
     assert setup["mcp_url"] == "https://mcp.test/v1/acme/mcp"
-    assert "contextos" in setup["cursor_config"]["mcpServers"]
+    assert "rangor" in setup["cursor_config"]["mcpServers"]
     assert "claude_code" in setup["client_configs"]
-    assert setup["client_configs"]["claude_code"]["config"]["mcpServers"]["contextos"]["type"] == "http"
-    assert "headers" not in setup["client_configs"]["claude_code"]["config"]["mcpServers"]["contextos"]
+    assert setup["client_configs"]["claude_code"]["config"]["mcpServers"]["rangor"]["type"] == "http"
+    assert "headers" not in setup["client_configs"]["claude_code"]["config"]["mcpServers"]["rangor"]
     assert "servers" in setup["client_configs"]["vscode"]["config"]
-    assert setup["client_configs"]["vscode"]["config"]["servers"]["contextos"]["type"] == "http"
+    assert setup["client_configs"]["vscode"]["config"]["servers"]["rangor"]["type"] == "http"
+    assert setup["client_configs"]["cursor"]["config"]["mcpServers"]["rangor"]["icon"] == "https://app.rangor.io/brand/mark.svg"
     assert setup["api_base"] == "/v1/acme"
 
     setup_html = hosted_client.get("/setup", follow_redirects=False)
@@ -90,7 +91,7 @@ def test_local_landing_without_tenant(tmp_path, offline):
     with TestClient(create_app(settings)) as client:
         landing = client.get("/")
         assert landing.status_code == 200
-        assert "Context OS MCP" in landing.text
+        assert "Rangor MCP" in landing.text
         assert client.get("/setup?format=json").status_code == 200
         html = client.get("/setup", follow_redirects=False)
         assert html.status_code == 302

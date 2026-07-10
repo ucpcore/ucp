@@ -21,7 +21,13 @@ def main() -> int:
 
     configure_logging(json_logs=settings.log_json, level=settings.log_level)
     logger = logging.getLogger("ucp_server")
-    logger.info("ucp-server starting on %s:%s", settings.host, settings.port)
+    logger.info(
+        "ucp-server starting on %s:%s (role=%s, multi_tenant=%s)",
+        settings.host,
+        settings.port,
+        settings.server_role,
+        settings.multi_tenant,
+    )
     from .auth import auth_required
     from .token_store import get_token_store
 

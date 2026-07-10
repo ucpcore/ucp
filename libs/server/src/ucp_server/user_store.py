@@ -29,6 +29,7 @@ class PortalUser:
     display_name: str
     role: Role
     auth_provider: AuthProvider
+    tenant_id: Optional[str] = None
     external_subject: Optional[str] = None
     external_issuer: Optional[str] = None
 
@@ -39,6 +40,7 @@ class PortalUser:
             "display_name": self.display_name,
             "role": self.role,
             "auth_provider": self.auth_provider,
+            "tenant_id": self.tenant_id,
             "external_subject": self.external_subject,
             "external_issuer": self.external_issuer,
         }
@@ -88,14 +90,24 @@ class JsonUserStore:
                 return self._row_to_user(row)
         return None
 
-    def get_by_email(self, email: str) -> Optional[PortalUser]:
+    def get_by_email(self, email: str, *, tenant_id: Optional[str] = None) -> Optional[PortalUser]:
         normalized = _validate_email(email)
         for row in self._load():
-            if row["email"] == normalized:
-                return self._row_to_user(row)
+            if row["email"] != normalized:
+                continue
+            if tenant_id is not None and row.get("tenant_id") != tenant_id:
+                continue
+            return self._row_to_user(row)
         return None
 
-    def bootstrap_admin(self, *, email: str, password: str, display_name: str) -> PortalUser:
+    def bootstrap_admin(
+        self,
+        *,
+        email: str,
+        password: str,
+        display_name: str,
+        tenant_id: Optional[str] = None,
+    ) -> PortalUser:
         if self.has_users():
             raise ValueError("bootstrap already completed")
         return self._create(
@@ -104,6 +116,7 @@ class JsonUserStore:
             display_name=display_name,
             role="admin",
             auth_provider="local",
+            tenant_id=tenant_id,
         )
 
     def create_local_user(
@@ -113,8 +126,9 @@ class JsonUserStore:
         password: str,
         display_name: str,
         role: Role = "member",
+        tenant_id: Optional[str] = None,
     ) -> PortalUser:
-        if self.get_by_email(email):
+        if self.get_by_email(email, tenant_id=tenant_id):
             raise ValueError("email already registered")
         return self._create(
             email=email,
@@ -122,6 +136,7 @@ class JsonUserStore:
             display_name=display_name,
             role=role,
             auth_provider="local",
+            tenant_id=tenant_id,
         )
 
     def authenticate_local(self, *, email: str, password: str) -> Optional[PortalUser]:
@@ -171,6 +186,7 @@ class JsonUserStore:
         display_name: str,
         role: Role,
         auth_provider: AuthProvider,
+        tenant_id: Optional[str] = None,
         external_subject: Optional[str] = None,
         external_issuer: Optional[str] = None,
     ) -> PortalUser:
@@ -180,6 +196,7 @@ class JsonUserStore:
             raise ValueError("display_name is required")
         row = {
             "id": uuid.uuid4().hex[:12],
+            "tenant_id": tenant_id,
             "email": normalized,
             "password_hash": _hash_password(password) if password else None,
             "display_name": name[:120],
@@ -212,6 +229,7 @@ class JsonUserStore:
             display_name=row["display_name"],
             role=row.get("role", "member"),
             auth_provider=row.get("auth_provider", "local"),
+            tenant_id=row.get("tenant_id"),
             external_subject=row.get("external_subject"),
             external_issuer=row.get("external_issuer"),
         )
@@ -232,13 +250,23 @@ class PostgresUserStore:
             row = session.get(UserRow, user_id)
             return self._row_to_user(row) if row else None
 
-    def get_by_email(self, email: str) -> Optional[PortalUser]:
+    def get_by_email(self, email: str, *, tenant_id: Optional[str] = None) -> Optional[PortalUser]:
         normalized = _validate_email(email)
         with self.session_factory() as session:
-            row = session.query(UserRow).filter(UserRow.email == normalized).one_or_none()
+            q = session.query(UserRow).filter(UserRow.email == normalized)
+            if tenant_id is not None:
+                q = q.filter(UserRow.tenant_id == tenant_id)
+            row = q.one_or_none()
             return self._row_to_user(row) if row else None
 
-    def bootstrap_admin(self, *, email: str, password: str, display_name: str) -> PortalUser:
+    def bootstrap_admin(
+        self,
+        *,
+        email: str,
+        password: str,
+        display_name: str,
+        tenant_id: Optional[str] = None,
+    ) -> PortalUser:
         if self.has_users():
             raise ValueError("bootstrap already completed")
         return self._create(
@@ -247,6 +275,7 @@ class PostgresUserStore:
             display_name=display_name,
             role="admin",
             auth_provider="local",
+            tenant_id=tenant_id,
         )
 
     def create_local_user(
@@ -256,8 +285,9 @@ class PostgresUserStore:
         password: str,
         display_name: str,
         role: Role = "member",
+        tenant_id: Optional[str] = None,
     ) -> PortalUser:
-        if self.get_by_email(email):
+        if self.get_by_email(email, tenant_id=tenant_id):
             raise ValueError("email already registered")
         return self._create(
             email=email,
@@ -265,6 +295,7 @@ class PostgresUserStore:
             display_name=display_name,
             role=role,
             auth_provider="local",
+            tenant_id=tenant_id,
         )
 
     def authenticate_local(self, *, email: str, password: str) -> Optional[PortalUser]:
@@ -319,6 +350,7 @@ class PostgresUserStore:
         display_name: str,
         role: Role,
         auth_provider: AuthProvider,
+        tenant_id: Optional[str] = None,
         external_subject: Optional[str] = None,
         external_issuer: Optional[str] = None,
     ) -> PortalUser:
@@ -327,6 +359,7 @@ class PostgresUserStore:
         now = utcnow()
         row = UserRow(
             id=uuid.uuid4().hex[:12],
+            tenant_id=tenant_id,
             email=normalized,
             password_hash=_hash_password(password) if password else None,
             display_name=name[:120],
@@ -349,6 +382,7 @@ class PostgresUserStore:
             display_name=row.display_name,
             role=row.role,  # type: ignore[arg-type]
             auth_provider=row.auth_provider,  # type: ignore[arg-type]
+            tenant_id=row.tenant_id,
             external_subject=row.external_subject,
             external_issuer=row.external_issuer,
         )

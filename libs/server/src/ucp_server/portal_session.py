@@ -43,7 +43,9 @@ def resolve_session_secret(settings: Settings) -> str:
         return settings.session_secret
     if settings.api_key:
         return hashlib.sha256(f"portal:{settings.api_key}".encode()).hexdigest()
-    return secrets.token_hex(32)
+    # Stable dev fallback — must not change between encode/decode in one process.
+    cache_key = str(settings.cache_dir.expanduser().resolve())
+    return hashlib.sha256(f"portal-ephemeral:{cache_key}".encode()).hexdigest()
 
 
 def encode_session(session: PortalSession, settings: Settings) -> str:

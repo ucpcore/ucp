@@ -27,6 +27,7 @@ class StoredInvite:
     code_hash: str
     created_at: str
     expires_at: str
+    tenant_id: Optional[str] = None
     redeemed_at: Optional[str] = None
     redeemed_token_id: Optional[str] = None
     redeemed_user_id: Optional[str] = None
@@ -44,6 +45,7 @@ class StoredInvite:
             "redeemed_token_id": self.redeemed_token_id,
             "redeemed_user_id": self.redeemed_user_id,
             "revoked_at": self.revoked_at,
+            "tenant_id": self.tenant_id,
             "status": st,
         }
 
@@ -99,6 +101,7 @@ class JsonInviteStore:
         principal_name: str,
         scopes: list[str],
         ttl_hours: int = DEFAULT_TTL_HOURS,
+        tenant_id: Optional[str] = None,
     ) -> tuple[StoredInvite, str]:
         _validate_invite_create(principal_name, scopes)
         raw = INVITE_PREFIX + secrets.token_urlsafe(24)
@@ -110,6 +113,7 @@ class JsonInviteStore:
             code_hash=_hash_code(raw),
             created_at=_now_iso(),
             expires_at=(now + timedelta(hours=max(1, ttl_hours))).isoformat().replace("+00:00", "Z"),
+            tenant_id=tenant_id,
         )
         rows = self._load()
         rows.append(invite)
@@ -128,6 +132,7 @@ class JsonInviteStore:
             "principal_name": invite.principal_name,
             "expires_at": invite.expires_at,
             "scopes": invite.scopes,
+            "tenant_id": invite.tenant_id,
         }
 
     def redeem(self, code: str, token_store: TokenStore) -> tuple[StoredInvite, str, dict[str, Any]]:
@@ -205,6 +210,7 @@ class JsonInviteStore:
                 redeemed_token_id=item.get("redeemed_token_id"),
                 revoked_at=item.get("revoked_at"),
                 redeemed_user_id=item.get("redeemed_user_id"),
+                tenant_id=item.get("tenant_id"),
             )
             for item in data
         ]
@@ -222,6 +228,7 @@ class JsonInviteStore:
                 "redeemed_token_id": r.redeemed_token_id,
                 "redeemed_user_id": r.redeemed_user_id,
                 "revoked_at": r.revoked_at,
+                "tenant_id": r.tenant_id,
             }
             for r in rows
         ]
@@ -245,6 +252,7 @@ class PostgresInviteStore:
         principal_name: str,
         scopes: list[str],
         ttl_hours: int = DEFAULT_TTL_HOURS,
+        tenant_id: Optional[str] = None,
     ) -> tuple[StoredInvite, str]:
         _validate_invite_create(principal_name, scopes)
         raw = INVITE_PREFIX + secrets.token_urlsafe(24)
@@ -256,6 +264,7 @@ class PostgresInviteStore:
             code_hash=_hash_code(raw),
             created_at=now.isoformat().replace("+00:00", "Z"),
             expires_at=(now + timedelta(hours=max(1, ttl_hours))).isoformat().replace("+00:00", "Z"),
+            tenant_id=tenant_id,
         )
         with self.session_factory() as session:
             session.add(
@@ -266,6 +275,7 @@ class PostgresInviteStore:
                     scopes=json.dumps(invite.scopes),
                     created_at=now,
                     expires_at=_parse_iso(invite.expires_at),
+                    tenant_id=tenant_id,
                 )
             )
             session.commit()
@@ -283,6 +293,7 @@ class PostgresInviteStore:
             "principal_name": invite.principal_name,
             "expires_at": invite.expires_at,
             "scopes": invite.scopes,
+            "tenant_id": invite.tenant_id,
         }
 
     def redeem(self, code: str, token_store: TokenStore) -> tuple[StoredInvite, str, dict[str, Any]]:
@@ -356,6 +367,7 @@ class PostgresInviteStore:
             redeemed_token_id=row.redeemed_token_id,
             redeemed_user_id=row.redeemed_user_id,
             revoked_at=row.revoked_at.isoformat().replace("+00:00", "Z") if row.revoked_at else None,
+            tenant_id=row.tenant_id,
         )
 
     def _row_to_public(self, row: InviteRow) -> dict[str, Any]:

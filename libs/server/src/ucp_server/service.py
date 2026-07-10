@@ -63,10 +63,13 @@ class GenerationService:
         llm: bool = False,
         since: Optional[str] = None,
         audience: Optional[str] = None,
+        principal: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+        tenant_slug: Optional[str] = None,
     ) -> tuple[str, dict[str, Any], bool]:
         """Generate (or serve from cache) a package. Returns (id, package, from_cache)."""
         ref = ref.strip()
-        graph_version = self._graph_version(source, ref)
+        graph_version = self._graph_version(source, ref, tenant_slug=tenant_slug)
         cache_key = json.dumps(
             {
                 "source": source,
@@ -75,21 +78,31 @@ class GenerationService:
                 "since": since,
                 "audience": audience,
                 "graph_version": graph_version,
+                "tenant_id": tenant_id,
             },
             sort_keys=True,
         )
         cached = self.cache.get(cache_key)
         if cached is not None:
             logger.info("cache hit for %s %s", source, ref)
-            package = self._apply_permissions(cached.package, audience, cached.id)
+            package = self._apply_permissions(
+                cached.package, audience, cached.id, tenant_id=tenant_id, tenant_slug=tenant_slug
+            )
             return cached.id, package, True
 
+        raw_bundle: Optional[dict[str, Any]] = None
         if source == "github":
-            package, docs = self._generate_github(ref, since)
+            package, docs, raw_bundle = self._generate_github(
+                ref, since, tenant_slug=tenant_slug, tenant_id=tenant_id
+            )
         elif source == "jira":
-            package, docs = self._generate_jira(ref, since)
+            package, docs, raw_bundle = self._generate_jira(
+                ref, since, tenant_slug=tenant_slug, tenant_id=tenant_id
+            )
         elif source in DOCUMENT_SOURCES:
-            package, docs = self._generate_document(source, ref, since)
+            package, docs, raw_bundle = self._generate_document(
+                source, ref, since, tenant_slug=tenant_slug
+            )
         else:  # request models already restrict this; belt and braces for MCP
             raise InvalidRefError(f"unknown source '{source}'; expected one of {SOURCES}")
 
@@ -102,16 +115,51 @@ class GenerationService:
                 logger.warning("LLM enhancement failed, serving structural package: %s", exc)
 
         entry_id = package_id(source, ref)
-        package = self._apply_permissions(package, audience, entry_id)
+        package = self._apply_permissions(
+            package, audience, entry_id, tenant_id=tenant_id, tenant_slug=tenant_slug
+        )
 
         ucp.validate(package)
 
         self.cache.put(cache_key, entry_id, package)
         logger.info("generated %s %s -> %s", source, ref, entry_id)
+        if principal and raw_bundle is not None:
+            self._record_token_savings(principal, source, ref, entry_id, package, raw_bundle)
         return entry_id, package, False
 
+    def _record_token_savings(
+        self,
+        principal: str,
+        source: str,
+        ref: str,
+        entry_id: str,
+        package: dict[str, Any],
+        bundle: dict[str, Any],
+    ) -> None:
+        try:
+            from .token_savings import estimate_raw_tokens, get_token_savings_store
+
+            raw_tokens = estimate_raw_tokens(source, bundle)
+            ucp_tokens = ucp.estimate_tokens(ucp.render(package))
+            get_token_savings_store(self.settings).record(
+                principal=principal,
+                source=source,
+                ref=ref,
+                package_id=entry_id,
+                ucp_tokens=ucp_tokens,
+                raw_tokens=raw_tokens,
+            )
+        except Exception as exc:
+            logger.debug("token savings record skipped: %s", exc)
+
     def _apply_permissions(
-        self, package: dict[str, Any], audience: Optional[str], entry_id: str
+        self,
+        package: dict[str, Any],
+        audience: Optional[str],
+        entry_id: str,
+        *,
+        tenant_id: Optional[str] = None,
+        tenant_slug: Optional[str] = None,
     ) -> dict[str, Any]:
         if not self.settings.spicedb_enabled:
             if audience:
@@ -126,20 +174,27 @@ class GenerationService:
             )
 
             return apply_permission_filter(
-                self._engine_settings(), package, audience, package_id=entry_id
+                self._engine_settings(tenant_slug=tenant_slug, tenant_id=tenant_id),
+                package,
+                audience,
+                package_id=entry_id,
             )
         except PermissionDenied as exc:
             raise PermissionError(str(exc)) from exc
         except PermissionUnavailable as exc:
             raise PermissionError(str(exc)) from exc
 
-    def _graph_version(self, source: str, ref: str) -> int:
+    def _graph_version(
+        self, source: str, ref: str, *, tenant_slug: Optional[str] = None
+    ) -> int:
         if not self.settings.engine_enabled or not self.settings.database_url:
             return 0
         try:
             from contextos_engine.index_store import IndexStore
 
-            return IndexStore(self._engine_settings()).get_graph_version(ref, source=source)
+            return IndexStore(
+                self._engine_settings(tenant_slug=tenant_slug)
+            ).get_graph_version(ref, source=source)
         except Exception as exc:
             logger.debug("graph_version lookup failed for %s %s: %s", source, ref, exc)
             return 0
@@ -181,19 +236,16 @@ class GenerationService:
             logger.warning("ranking failed: %s", exc)
             return package
 
-    def _indexed_bundle(self, source: str, ref: str) -> Optional[dict]:
+    def _indexed_bundle(
+        self, source: str, ref: str, *, tenant_slug: Optional[str] = None
+    ) -> Optional[dict]:
         """Return a pre-indexed bundle from the engine store, if configured."""
         if not self.settings.engine_enabled or not self.settings.database_url:
             return None
         try:
-            from contextos_engine.config import EngineSettings
             from contextos_engine.index_store import IndexStore
 
-            engine_settings = EngineSettings(
-                database_url=self.settings.database_url,
-                engine_enabled=True,
-            )
-            store = IndexStore(engine_settings)
+            store = IndexStore(self._engine_settings(tenant_slug=tenant_slug))
             if source == "yandex_disk" and ref.startswith("path:"):
                 return store.get_bundle_by_disk_path(ref[5:], source=source)
             return store.get_bundle(ref, source=source)
@@ -201,23 +253,34 @@ class GenerationService:
             logger.warning("engine index lookup failed for %s %s: %s", source, ref, exc)
             return None
 
-    def _indexed_github_bundle(self, ref: str) -> Optional[dict]:
-        return self._indexed_bundle("github", ref)
+    def _indexed_github_bundle(
+        self, ref: str, *, tenant_slug: Optional[str] = None
+    ) -> Optional[dict]:
+        return self._indexed_bundle("github", ref, tenant_slug=tenant_slug)
 
-    def _generate_github(self, ref: str, since: Optional[str]) -> tuple[dict, list[dict]]:
+    def _generate_github(
+        self,
+        ref: str,
+        since: Optional[str],
+        *,
+        tenant_slug: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+    ) -> tuple[dict, list[dict], dict]:
         match = GH_REF.match(ref)
         if not match:
             raise InvalidRefError(
                 f"invalid GitHub reference '{ref}': expected owner/repo#number, e.g. pallets/flask#5961"
             )
-        bundle = self._indexed_github_bundle(ref)
+        bundle = self._indexed_github_bundle(ref, tenant_slug=tenant_slug)
         if bundle is not None:
             logger.info("engine index hit for github %s", ref)
         else:
             try:
                 bundle = fetch_github(
                     match["owner"], match["repo"], int(match["number"]),
-                    token=get_connector_token(self.settings, "github")
+                    token=get_connector_token(
+                        self.settings, "github", tenant_id=tenant_id
+                    )
                     or self.settings.github_token,
                 )
             except GitHubError as exc:
@@ -226,18 +289,25 @@ class GenerationService:
         if self.settings.engine_enabled and self.settings.neo4j_uri:
             package = self._enrich_from_graph("github", ref, package, since)
         package = self._apply_ranking(package, package_id=package_id("github", ref))
-        return package, github_llm_docs(bundle, package["generated_at"])
+        return package, github_llm_docs(bundle, package["generated_at"]), bundle
 
-    def _engine_settings(self):
+    def _engine_settings(
+        self, *, tenant_slug: Optional[str] = None, tenant_id: Optional[str] = None
+    ):
         from contextos_engine.config import EngineSettings
 
+        group = self.settings.graph_group_id
+        if tenant_id:
+            group = f"t{tenant_id}"
         return EngineSettings(
             database_url=self.settings.database_url or "",
             engine_enabled=True,
+            tenant_slug=tenant_slug or self.settings.tenant_slug,
+            tenant_id=tenant_id,
             neo4j_uri=self.settings.neo4j_uri or "bolt://127.0.0.1:7687",
             neo4j_user=self.settings.neo4j_user or "neo4j",
             neo4j_password=self.settings.neo4j_password or "",
-            graph_group_id=self.settings.graph_group_id,
+            graph_group_id=group,
             spicedb_enabled=self.settings.spicedb_enabled,
             spicedb_grpc_addr=self.settings.spicedb_grpc_addr,
             spicedb_preshared_key=self.settings.spicedb_preshared_key,
@@ -287,12 +357,19 @@ class GenerationService:
             logger.warning("graph enrichment failed for %s %s: %s", source, ref, exc)
         return package
 
-    def _generate_jira(self, ref: str, since: Optional[str]) -> tuple[dict, list[dict]]:
+    def _generate_jira(
+        self,
+        ref: str,
+        since: Optional[str],
+        *,
+        tenant_slug: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+    ) -> tuple[dict, list[dict], dict]:
         if not JIRA_REF.match(ref):
             raise InvalidRefError(
                 f"invalid Jira reference '{ref}': expected a key like PROJ-123"
             )
-        bundle = self._indexed_bundle("jira", ref)
+        bundle = self._indexed_bundle("jira", ref, tenant_slug=tenant_slug)
         if bundle is not None:
             logger.info("engine index hit for jira %s", ref)
         else:
@@ -301,7 +378,7 @@ class GenerationService:
                     ref,
                     base_url=self.settings.jira_base_url,
                     email=self.settings.jira_email,
-                    token=get_connector_token(self.settings, "jira")
+                    token=get_connector_token(self.settings, "jira", tenant_id=tenant_id)
                     or self.settings.jira_api_token,
                 )
             except JiraError as exc:
@@ -310,7 +387,7 @@ class GenerationService:
         if self.settings.engine_enabled and self.settings.neo4j_uri:
             package = self._enrich_from_graph("jira", ref, package, since)
         package = self._apply_ranking(package, package_id=package_id("jira", ref))
-        return package, jira_llm_docs(bundle, package["generated_at"])
+        return package, jira_llm_docs(bundle, package["generated_at"]), bundle
 
     def _validate_document_ref(self, source: str, ref: str) -> None:
         if source == "confluence" and not CONFLUENCE_REF.match(ref):
@@ -327,10 +404,15 @@ class GenerationService:
             )
 
     def _generate_document(
-        self, source: str, ref: str, since: Optional[str]
-    ) -> tuple[dict, list[dict]]:
+        self,
+        source: str,
+        ref: str,
+        since: Optional[str],
+        *,
+        tenant_slug: Optional[str] = None,
+    ) -> tuple[dict, list[dict], dict]:
         self._validate_document_ref(source, ref)
-        bundle = self._indexed_bundle(source, ref)
+        bundle = self._indexed_bundle(source, ref, tenant_slug=tenant_slug)
         if bundle is None:
             raise SourceError(
                 f"document not found in engine index: {source} {ref} (run sync first)"
@@ -338,4 +420,4 @@ class GenerationService:
         logger.info("engine index hit for %s %s", source, ref)
         package = build_document_package(bundle, since=since)
         package = self._apply_ranking(package, package_id=package_id(source, ref))
-        return package, document_llm_docs(bundle, package["generated_at"])
+        return package, document_llm_docs(bundle, package["generated_at"]), bundle

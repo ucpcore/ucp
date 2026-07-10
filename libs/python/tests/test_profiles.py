@@ -47,3 +47,23 @@ def test_salience_method_validates():
         "sources": {"src-1": {"system": "jira", "type": "issue", "title": "x"}},
     }
     ucp.validate(doc)
+
+
+def test_ucp_verified_requires_receipt_extension():
+    doc = {
+        "ucp_version": "0.1.1",
+        "id": "urn:uuid:3",
+        "generated_at": "2026-07-08T12:00:00Z",
+        "generator": {"name": "t"},
+        "profiles": ["ucp-verified"],
+        "entity": {
+            "ref": {"system": "jira", "type": "issue", "id": "X"},
+            "title": "x",
+        },
+        "summary": {"text": "s"},
+        "sources": {"src-1": {"system": "jira", "type": "issue", "title": "x"}},
+    }
+    assert ucp.iter_profile_errors(doc)
+    doc["extensions"] = {"org.ucpcore.receipt": {"expected": True}}
+    assert not ucp.iter_profile_errors(doc)
+    ucp.validate(doc)

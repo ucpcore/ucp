@@ -51,13 +51,23 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def inbound_webhook_url(settings: Settings, source: str, url_token: str) -> str:
+def _api_base_url(settings: Settings) -> Optional[str]:
+    if hasattr(settings, "effective_api_base_url"):
+        return settings.effective_api_base_url()
+    raw = getattr(settings, "api_public_base_url", None) or getattr(
+        settings, "public_base_url", None
+    )
+    return str(raw).rstrip("/") if raw else None
+
+
+def inbound_webhook_url(settings: Settings, source: str, url_token: str, tenant_slug: Optional[str] = None) -> str:
     path = f"/v1/webhooks/inbound/{source}/{url_token}"
-    slug = normalize_tenant_slug(settings.tenant_slug)
-    if settings.public_base_url and slug:
-        return public_api_url(settings.public_base_url, slug, path)
-    base = (settings.public_base_url or f"http://{settings.host}:{settings.port}").rstrip("/")
-    return f"{base}{path}"
+    slug = tenant_slug or (normalize_tenant_slug(settings.tenant_slug) if settings.tenant_slug else None)
+    base = _api_base_url(settings)
+    if base and slug:
+        return public_api_url(base, slug, path)
+    fallback = base or f"http://{settings.host}:{settings.port}"
+    return f"{fallback.rstrip('/')}{path}"
 
 
 class WebhookEndpointStore:
@@ -73,6 +83,7 @@ class WebhookEndpointStore:
         user_id: str,
         source: WebhookSource,
         label: Optional[str] = None,
+        tenant_id: Optional[str] = None,
     ) -> CreatedWebhookEndpoint:
         if source not in VALID_SOURCES:
             raise ValueError(f"unknown webhook source: {source}")
@@ -87,6 +98,7 @@ class WebhookEndpointStore:
             with session_factory() as session:
                 row = WebhookEndpointRow(
                     id=endpoint_id,
+                    tenant_id=tenant_id,
                     user_id=user_id,
                     source=source,
                     label=display_label,
@@ -102,6 +114,7 @@ class WebhookEndpointStore:
             rows.append(
                 {
                     "id": endpoint_id,
+                    "tenant_id": tenant_id,
                     "user_id": user_id,
                     "source": source,
                     "label": display_label,
@@ -120,13 +133,28 @@ class WebhookEndpointStore:
             user_id=user_id,
             created_at=now.isoformat().replace("+00:00", "Z"),
         )
+        slug = None
+        if tenant_id and self._use_pg:
+            from .tenant_store import get_tenant_store
+
+            tenant = get_tenant_store(self.settings).get_by_id(tenant_id)
+            slug = tenant.slug if tenant else None
+        elif tenant_id and not self._use_pg:
+            from .tenant_store import get_tenant_store
+
+            tenant = get_tenant_store(self.settings).get_by_id(tenant_id)
+            slug = tenant.slug if tenant else None
         return CreatedWebhookEndpoint(
             endpoint=endpoint,
-            inbound_url=inbound_webhook_url(self.settings, source, url_token),
+            inbound_url=inbound_webhook_url(
+                self.settings, source, url_token, tenant_slug=slug
+            ),
             signing_secret=signing_secret,
         )
 
-    def resolve(self, source: str, url_token: str) -> Optional[tuple[WebhookEndpoint, str]]:
+    def resolve(
+        self, source: str, url_token: str, *, tenant_id: Optional[str] = None
+    ) -> Optional[tuple[WebhookEndpoint, str]]:
         """Return (endpoint, signing_secret) for a valid inbound URL token."""
         if source not in VALID_SOURCES:
             return None
@@ -134,15 +162,14 @@ class WebhookEndpointStore:
         if self._use_pg:
             session_factory = get_session_factory(self.settings.database_url or "")
             with session_factory() as session:
-                row = (
-                    session.query(WebhookEndpointRow)
-                    .filter(
-                        WebhookEndpointRow.source == source,
-                        WebhookEndpointRow.token_hash == token_hash,
-                        WebhookEndpointRow.revoked_at.is_(None),
-                    )
-                    .one_or_none()
+                query = session.query(WebhookEndpointRow).filter(
+                    WebhookEndpointRow.source == source,
+                    WebhookEndpointRow.token_hash == token_hash,
+                    WebhookEndpointRow.revoked_at.is_(None),
                 )
+                if tenant_id is not None:
+                    query = query.filter(WebhookEndpointRow.tenant_id == tenant_id)
+                row = query.one_or_none()
                 if row is None:
                     return None
                 return _row_to_endpoint(row), row.signing_secret
@@ -151,6 +178,7 @@ class WebhookEndpointStore:
                 row.get("source") == source
                 and row.get("token_hash") == token_hash
                 and not row.get("revoked_at")
+                and (tenant_id is None or row.get("tenant_id") == tenant_id)
             ):
                 return (
                     WebhookEndpoint(

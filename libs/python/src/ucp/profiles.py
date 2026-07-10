@@ -38,6 +38,13 @@ def iter_profile_errors(data: dict[str, Any]) -> list[str]:
             if not ac.get("audit_ref"):
                 errors.append("ucp-secure: audience.access_control.audit_ref is required")
 
+    if "ucp-verified" in profiles:
+        receipt = (data.get("extensions") or {}).get("org.ucpcore.receipt") or {}
+        if receipt.get("expected") is not True:
+            errors.append(
+                "ucp-verified: extensions.org.ucpcore.receipt.expected must be true"
+            )
+
     return errors
 
 

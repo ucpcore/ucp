@@ -70,5 +70,12 @@ export function profileErrors(doc) {
     }
   }
 
+  if (profiles.includes("ucp-verified")) {
+    const receipt = doc.extensions?.["org.ucpcore.receipt"];
+    if (receipt?.expected !== true) {
+      errors.push("ucp-verified: extensions.org.ucpcore.receipt.expected must be true");
+    }
+  }
+
   return errors;
 }

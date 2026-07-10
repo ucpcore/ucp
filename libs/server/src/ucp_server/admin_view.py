@@ -1,6 +1,8 @@
 """Minimal Admin Dashboard HTML (browser login + client-side fetch)."""
 from __future__ import annotations
 
+from .brand import PRODUCT_NAME
+
 
 def render_admin_app() -> str:
     """Self-contained admin UI: API key in sessionStorage, data via /v1/admin/sources."""
@@ -9,7 +11,7 @@ def render_admin_app() -> str:
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Context OS — Admin</title>
+  <title>@@PRODUCT@@ — Admin</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; background: #0f172a; color: #e2e8f0; }
     h1 { margin-bottom: 0.25rem; }
@@ -35,7 +37,7 @@ def render_admin_app() -> str:
 </head>
 <body>
   <div id="login-view" class="login">
-    <h1>Context OS Admin</h1>
+    <h1>@@PRODUCT@@ Admin</h1>
     <p class="meta">Введите <code>UCP_SERVER_API_KEY</code> для доступа к health коннекторов.</p>
     <label for="api-key">API key</label>
     <input id="api-key" type="password" autocomplete="off" placeholder="Bearer token"/>
@@ -49,7 +51,7 @@ def render_admin_app() -> str:
       <button type="button" id="logout-btn">Выйти</button>
       <span id="sync-toast" class="toast"></span>
     </div>
-    <h1>Context OS Admin</h1>
+    <h1>@@PRODUCT@@ Admin</h1>
     <p id="meta" class="meta"></p>
     <h2>Sources</h2>
     <table>
@@ -460,4 +462,4 @@ def render_admin_app() -> str:
     loadDashboard();
   </script>
 </body>
-</html>"""
+</html>""".replace("@@PRODUCT@@", PRODUCT_NAME)

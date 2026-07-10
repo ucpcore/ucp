@@ -119,6 +119,8 @@ def is_public_path(method: str, path: str) -> bool:
         return True
     if method == "GET" and path == "/v1/me/invites/preview":
         return True
+    if method == "POST" and path == "/v1/demo/generate":
+        return True
     return False
 
 
@@ -176,10 +178,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         auth = resolve_auth(self.settings, self.token_store, supplied) if supplied else None
         if auth is None:
-            if path == "/mcp" or path.startswith("/mcp/"):
+            from .tenant import extract_tenant_slug_from_path
+
+            is_mcp = path == "/mcp" or path.startswith("/mcp/")
+            if not is_mcp and path.endswith("/mcp") and extract_tenant_slug_from_path(path):
+                is_mcp = True
+            if is_mcp:
                 from .mcp_oauth import mcp_unauthorized_response
 
-                return mcp_unauthorized_response(self.settings)
+                return mcp_unauthorized_response(self.settings, request)
             return problem(
                 401,
                 "Unauthorized",

@@ -1,0 +1,15 @@
+{
+  "ucp_version": "0.1.1",
+  "id": "urn:uuid:00000000-0000-4000-8000-000000000012",
+  "generated_at": "2026-07-10T12:00:00Z",
+  "generator": { "name": "conformance" },
+  "profiles": ["ucp-core", "ucp-verified"],
+  "entity": {
+    "ref": { "system": "github", "type": "issue", "id": "acme/demo#2" },
+    "title": "Missing receipt extension"
+  },
+  "summary": { "text": "ucp-verified without org.ucpcore.receipt extension." },
+  "sources": {
+    "src-1": { "system": "github", "type": "issue", "title": "Missing receipt extension" }
+  }
+}

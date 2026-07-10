@@ -1,0 +1,18 @@
+{
+  "ucp_version": "0.1.1",
+  "id": "urn:uuid:00000000-0000-4000-8000-000000000011",
+  "generated_at": "2026-07-10T12:00:00Z",
+  "generator": { "name": "conformance" },
+  "profiles": ["ucp-core", "ucp-verified"],
+  "extensions": {
+    "org.ucpcore.receipt": { "expected": true }
+  },
+  "entity": {
+    "ref": { "system": "github", "type": "issue", "id": "acme/demo#1" },
+    "title": "Demo issue"
+  },
+  "summary": { "text": "Package expects a Usage Receipt from the consumer." },
+  "sources": {
+    "src-1": { "system": "github", "type": "issue", "title": "Demo issue" }
+  }
+}
