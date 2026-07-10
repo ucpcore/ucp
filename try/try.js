@@ -218,9 +218,15 @@
       body: JSON.stringify({ ref: ref, llm: !!llm }),
     })
       .then(function (r) {
-        return r.json().then(function (body) {
+        return r.text().then(function (text) {
+          var body;
+          try {
+            body = JSON.parse(text);
+          } catch (e) {
+            body = { detail: text || r.statusText || "demo API error" };
+          }
           if (!r.ok) {
-            var detail = body.detail || body.title || "demo API error";
+            var detail = body.detail || body.title || text || "demo API error";
             throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
           }
           return body;
