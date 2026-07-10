@@ -208,7 +208,7 @@
     setLoading(true);
     setStatus(
       llm
-        ? "Fetching thread and enhancing with AI (30–90s on CPU)…"
+        ? "Fetching thread and enhancing with AI…"
         : "Fetching from GitHub and building package…",
       "loading"
     );
@@ -230,8 +230,10 @@
         renderPackage(body.package, body.stats, body.meta);
         var mode = body.meta && body.meta.llm_applied ? "AI-enhanced" : "structural";
         var degraded = body.meta && body.meta.llm_degraded ? " (AI degraded: " + body.meta.llm_degraded + ")" : "";
+        var cached = body.meta && body.meta.cached;
         setStatus(
-          mode + " package · " + (body.stats.comments_fetched || "?") + " comments fetched." + degraded,
+          (cached ? "Cached · " : "") +
+            mode + " package · " + (body.stats.comments_fetched || "?") + " comments fetched." + degraded,
           body.meta && body.meta.llm_degraded ? "err" : "ok"
         );
       });
