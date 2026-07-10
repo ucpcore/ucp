@@ -610,8 +610,37 @@ footer { border-top: 1px solid var(--border); padding: 40px 0 56px; }
 .try-mode-llm { background: rgba(76,195,138,.15); color: var(--accent); }
 .try-mode-degraded { background: rgba(240,113,120,.12); color: #f07178; }
 .try-hint { color: var(--muted); font-size: .92rem; min-height: 1.4em; }
+.try-hint-loading {
+  background: linear-gradient(
+    90deg,
+    var(--faint) 0%,
+    var(--muted) 35%,
+    #c8cdd4 50%,
+    var(--muted) 65%,
+    var(--faint) 100%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: try-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes try-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: -100% 50%; }
+}
 .try-hint-ok { color: var(--accent); }
 .try-hint-err { color: #f07178; }
+.try-form .btn:disabled,
+.try-pick:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.try-form input:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
 .try-results.hidden { display: none; }
 .try-stats { margin: 24px 0 28px; }
 .try-stat-card {

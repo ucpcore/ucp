@@ -6,6 +6,7 @@
 
   var manifest = null;
   var lastPackage = null;
+  var isRunning = false;
 
   var form = document.getElementById("try-form");
   var input = document.getElementById("try-input");
@@ -61,11 +62,26 @@
 
   function setStatus(msg, kind) {
     statusEl.textContent = msg || "";
-    statusEl.className = "try-hint" + (kind ? " try-hint-" + kind : "");
+    var cls = "try-hint";
+    if (kind === "loading") {
+      cls += " try-hint-loading";
+    } else if (kind) {
+      cls += " try-hint-" + kind;
+    }
+    statusEl.className = cls;
   }
 
   function setLoading(on) {
+    isRunning = on;
     submitBtn.disabled = on;
+    submitBtn.setAttribute("aria-busy", on ? "true" : "false");
+    input.disabled = on;
+    if (llmCheckbox) {
+      llmCheckbox.disabled = on;
+    }
+    picks.querySelectorAll(".try-pick").forEach(function (btn) {
+      btn.disabled = on;
+    });
     submitBtn.textContent = on ? "Generating…" : "Generate";
   }
 
@@ -165,7 +181,7 @@
 
   function loadCurated(example) {
     setLoading(true);
-    setStatus("Loading " + example.ref + "…");
+    setStatus("Loading " + example.ref + "…", "loading");
     return fetch("/try/data/" + example.file)
       .then(function (r) {
         if (!r.ok) throw new Error("cached package not found");
@@ -190,7 +206,12 @@
 
   function loadLive(ref, llm) {
     setLoading(true);
-    setStatus(llm ? "Fetching thread and enhancing with AI…" : "Fetching from GitHub and building package…");
+    setStatus(
+      llm
+        ? "Fetching thread and enhancing with AI (30–90s on CPU)…"
+        : "Fetching from GitHub and building package…",
+      "loading"
+    );
     return fetch(demoApiUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -217,6 +238,9 @@
   }
 
   function run(ref) {
+    if (isRunning) {
+      return Promise.resolve();
+    }
     var llm = wantsLlm();
     var curated = !llm && curatedExample(ref);
     var chain = curated
