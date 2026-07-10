@@ -1,5 +1,6 @@
 {
   "demo_api": "https://demo.ucpcore.org/v1/demo/generate",
+  "structural_note": "Curated JSON below is an instant structural preview (first paragraph as summary). Check Enhance with AI for a real thread digest.",
   "examples": [
     {
       "ref": "microsoft/vscode#519",
@@ -8,7 +9,8 @@
       "file": "microsoft-vscode-519.ucp.json",
       "raw_tokens": 18517,
       "ucp_tokens": 1225,
-      "comments": "200 of 596"
+      "comments": "200 of 596",
+      "structural_only": true
     },
     {
       "ref": "rust-lang/rust#158622",
@@ -17,7 +19,8 @@
       "file": "rust-lang-rust-158622.ucp.json",
       "raw_tokens": 4464,
       "ucp_tokens": 1398,
-      "comments": "13"
+      "comments": "13",
+      "structural_only": true
     },
     {
       "ref": "pallets/flask#5961",
@@ -26,7 +29,8 @@
       "file": "pallets-flask-5961.ucp.json",
       "raw_tokens": 808,
       "ucp_tokens": 713,
-      "comments": "4"
+      "comments": "4",
+      "structural_only": true
     }
   ]
 }

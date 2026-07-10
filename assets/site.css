@@ -596,6 +596,19 @@ footer { border-top: 1px solid var(--border); padding: 40px 0 56px; }
 .try-pick:hover { border-color: var(--accent); }
 .try-pick strong { margin-right: 6px; }
 .try-pick span { color: var(--muted); font-size: .88rem; }
+.try-llm-toggle {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+  margin-top: 12px; font-size: .92rem; cursor: pointer;
+}
+.try-llm-toggle input { accent-color: var(--accent); }
+.try-llm-hint { color: var(--faint); font-size: .85rem; }
+.try-mode-badge {
+  display: inline-block; font-size: .75rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .05em; padding: 3px 8px; border-radius: 4px; margin-bottom: 8px;
+}
+.try-mode-structural { background: rgba(255,255,255,.06); color: var(--muted); }
+.try-mode-llm { background: rgba(76,195,138,.15); color: var(--accent); }
+.try-mode-degraded { background: rgba(240,113,120,.12); color: #f07178; }
 .try-hint { color: var(--muted); font-size: .92rem; min-height: 1.4em; }
 .try-hint-ok { color: var(--accent); }
 .try-hint-err { color: #f07178; }

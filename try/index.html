@@ -9,7 +9,7 @@
 <meta property="og:description" content="Turn a sprawling GitHub thread into a verifiable UCP package in your browser.">
 <meta property="og:url" content="https://ucpcore.org/try/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b0e12'/%3E%3Ctext x='16' y='22' font-family='SF Mono,Menlo,monospace' font-size='15' font-weight='700' fill='%234cc38a' text-anchor='middle'%3E%7B%7D%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="/assets/site.css?v=6">
+<link rel="stylesheet" href="/assets/site.css?v=7">
 </head>
 <body>
 
@@ -38,6 +38,11 @@
       <input type="text" id="try-input" name="ref" placeholder="https://github.com/microsoft/vscode/issues/519  or  microsoft/vscode#519" spellcheck="false">
       <button type="submit" class="btn btn-primary" id="try-submit">Generate</button>
     </form>
+    <label class="try-llm-toggle" for="try-llm">
+      <input type="checkbox" id="try-llm" name="llm">
+      <span>Enhance with AI</span>
+      <span class="try-llm-hint">LLM summary of the full thread · rate-limited · max 80 comments</span>
+    </label>
 
     <div class="try-picks" id="try-picks" aria-label="Curated examples"></div>
     <p class="try-hint" id="try-status" role="status"></p>
@@ -82,6 +87,6 @@
 </footer>
 
 <script src="/assets/site.js"></script>
-<script src="/try/try.js?v=1"></script>
+<script src="/try/try.js?v=2"></script>
 </body>
 </html>

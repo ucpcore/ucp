@@ -13,6 +13,25 @@
   var results = document.getElementById("try-results");
   var picks = document.getElementById("try-picks");
   var submitBtn = document.getElementById("try-submit");
+  var llmCheckbox = document.getElementById("try-llm");
+
+  function wantsLlm() {
+    return llmCheckbox && llmCheckbox.checked;
+  }
+
+  function modeBadge(meta) {
+    if (!meta) return "";
+    if (meta.llm_applied) {
+      return '<span class="try-mode-badge try-mode-llm">AI-enhanced</span>';
+    }
+    if (meta.llm_degraded) {
+      return '<span class="try-mode-badge try-mode-degraded">AI unavailable · structural</span>';
+    }
+    if (meta.mode === "structural" || meta.structural_only) {
+      return '<span class="try-mode-badge try-mode-structural">Structural preview</span>';
+    }
+    return "";
+  }
 
   function demoApiUrl() {
     if (manifest && manifest.demo_api) {
@@ -61,7 +80,7 @@
     return claim.salience.toFixed(2) + method;
   }
 
-  function renderStats(stats, pkg) {
+  function renderStats(stats, pkg, meta) {
     var el = document.getElementById("try-stats");
     var title = (pkg.entity && pkg.entity.title) || stats.ref || "Package";
     var raw = stats.raw_tokens;
@@ -71,6 +90,7 @@
       pct = Math.max(0, Math.round(100 - (ucp * 100 / Math.max(raw, 1))));
     }
     el.innerHTML =
+      modeBadge(meta) +
       '<div class="try-stat-card">' +
         '<h3>' + escapeHtml(title) + '</h3>' +
         '<p class="try-ref mono">' + escapeHtml(stats.ref || "") + '</p>' +
@@ -92,9 +112,9 @@
       .replace(/"/g, "&quot;");
   }
 
-  function renderPackage(pkg, stats) {
+  function renderPackage(pkg, stats, meta) {
     lastPackage = pkg;
-    renderStats(stats || { ref: (pkg.entity && pkg.entity.ref && pkg.entity.ref.id) || "" }, pkg);
+    renderStats(stats || { ref: (pkg.entity && pkg.entity.ref && pkg.entity.ref.id) || "" }, pkg, meta);
 
     document.getElementById("try-summary").textContent = (pkg.summary && pkg.summary.text) || "(no summary)";
 
@@ -116,7 +136,7 @@
     (pkg.decisions || []).slice(0, 8).forEach(function (d) {
       var li = document.createElement("li");
       var status = d.status ? ' <span class="tag">' + escapeHtml(d.status) + '</span>' : "";
-      li.innerHTML = "<strong>" + escapeHtml(d.title || d.summary || "Decision") + "</strong>" + status;
+      li.innerHTML = "<strong>" + escapeHtml(d.decision || d.title || d.summary || "Decision") + "</strong>" + status;
       dec.appendChild(li);
     });
     if (!(pkg.decisions || []).length) {
@@ -159,18 +179,22 @@
           reduction_pct: example.raw_tokens
             ? Math.max(0, Math.round(100 - (example.ucp_tokens * 100 / example.raw_tokens)))
             : 0,
-        });
-        setStatus("Instant preview from curated benchmark · live API available for other public issues.", "ok");
+        }, { mode: "structural", structural_only: true });
+        setStatus(
+          "Instant structural preview (first paragraph as summary). " +
+            "Enable Enhance with AI for a real thread digest.",
+          "ok"
+        );
       });
   }
 
-  function loadLive(ref) {
+  function loadLive(ref, llm) {
     setLoading(true);
-    setStatus("Fetching from GitHub and building package…");
+    setStatus(llm ? "Fetching thread and enhancing with AI…" : "Fetching from GitHub and building package…");
     return fetch(demoApiUrl(), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ref: ref }),
+      body: JSON.stringify({ ref: ref, llm: !!llm }),
     })
       .then(function (r) {
         return r.json().then(function (body) {
@@ -182,16 +206,22 @@
         });
       })
       .then(function (body) {
-        renderPackage(body.package, body.stats);
-        setStatus("Live package generated · " + (body.stats.comments_fetched || "?") + " comments fetched.", "ok");
+        renderPackage(body.package, body.stats, body.meta);
+        var mode = body.meta && body.meta.llm_applied ? "AI-enhanced" : "structural";
+        var degraded = body.meta && body.meta.llm_degraded ? " (AI degraded: " + body.meta.llm_degraded + ")" : "";
+        setStatus(
+          mode + " package · " + (body.stats.comments_fetched || "?") + " comments fetched." + degraded,
+          body.meta && body.meta.llm_degraded ? "err" : "ok"
+        );
       });
   }
 
   function run(ref) {
-    var curated = curatedExample(ref);
+    var llm = wantsLlm();
+    var curated = !llm && curatedExample(ref);
     var chain = curated
       ? loadCurated(curated)
-      : loadLive(ref);
+      : loadLive(ref, llm);
 
     return chain.catch(function (err) {
       if (!curated) {
@@ -242,6 +272,9 @@
       renderPicks();
       var params = new URLSearchParams(location.search);
       var q = params.get("ref") || params.get("issue");
+      if (params.get("llm") === "1" && llmCheckbox) {
+        llmCheckbox.checked = true;
+      }
       if (q) {
         var ref = normalizeRef(q);
         if (ref) {
